@@ -16,7 +16,7 @@ include __DIR__ . '/../vendor/autoload.php';
 $container = new Container();
 
 $container->bind(\App\ExampleInterface::class, \App\ExampleClass1::class);
-//$result1 = $container->makeWith(\App\ExampleInterface::class,['name' => 'Вася','number' => 10]);
+//$result = $container->makeWith(\App\ExampleInterface::class,['name' => 'Вася','number' => 10]);
 $result = $container->make(ExampleInterface::class);
 
 dd($result);
