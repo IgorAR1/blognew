@@ -6,7 +6,7 @@ use App\Container\Exceptions\ContainerException;
 use App\Container\Exceptions\NotFoundException;
 use Psr\Container\ContainerInterface;
 use ReflectionClass;
-use ReflectionException;
+use ReflectionParameter;
 
 class Container implements ContainerInterface
 {
@@ -15,11 +15,15 @@ class Container implements ContainerInterface
      */
     private array $resolvedInstances = [];
     private array $binds = [];
-    private array $inProgress;
-    private array $with = [];
+    private array $inProgress = [];
 
-    public function __construct()
+    public function has(string $id): bool
     {
+        if (array_key_exists($id, $this->resolvedInstances) || $this->isInstantiable($id)) {
+            return true;
+        }
+
+        return false;
     }
 
     public function get(string $id): object
@@ -27,115 +31,99 @@ class Container implements ContainerInterface
         if (array_key_exists($id, $this->resolvedInstances)) {
             return $this->resolvedInstances[$id];
         }
-
         $instance = $this->make($id);
-
-        if (!array_key_exists($id, $this->resolvedInstances)) {
-            $this->resolvedInstances[$id] = $instance;
-        }
+        $this->resolvedInstances[$id] = $instance;
 
         return $instance;
     }
 
-
-    public function makeWith(string $definition, array $parameters = []): object
+    public function makeWith(string $definition, array $parameters): object
     {
-        $this->notInstantiable($definition);
-
-//        if (isset($this->inProgress[$definition])) {
-//            throw new ContainerException('Cyclic dependency resolved instance is already in container');
-//        }
-
-        $this->with = $parameters;
-
-        $this->markAsInProgress($definition);
-
-        if (array_key_exists($definition, $this->binds)) {
-            $definition = $this->binds[$definition];
-        }
-
-        $resolvedDependencies = $this->resolveParameters($definition);
-
-        $this->unmarkAsInProgress($definition);
-
-        return new $definition(...$resolvedDependencies);
+        return $this->make($definition, $parameters);
     }
 
-
-    public function make(string $definition): object
+    public function make(string $definition, array $parameters = []): object
     {
         if (isset($this->inProgress[$definition])) {
             throw new ContainerException('Cyclic dependency resolved instance is already in container');
         }
 
-        $this->notInstantiable($definition);
-
         if (array_key_exists($definition, $this->binds)) {
             $definition = $this->binds[$definition];
         }
 
+        $this->notInstantiable($definition);
+
         $this->markAsInProgress($definition);
 
-        $resolvedDependencies = $this->resolveDependencies($definition);
+        try {
+            $resolvedDependencies = $this->resolveDependencies($definition, $parameters);
 
-        $this->unmarkAsInProgress($definition);
+            $instance = new $definition(...$resolvedDependencies);
 
-        return new $definition(...$resolvedDependencies);
-//        return $reflector->newInstanceArgs($resolvedDependencies);
+            $this->unmarkAsInProgress($definition);
+        }
+        catch (\Throwable $exception) {
+            $this->unmarkAsInProgress($definition);
+            throw $exception;
+        }
+
+        return $instance;
     }
 
-    private function resolveDependencies(string $definition): array
+    private function resolveDependencies(string $definition, $parameters = []): array
     {
         $reflector = new ReflectionClass($definition);
 
         $dependencies = [];
 
-        if ($reflector->hasMethod('__construct')){
-            $dependencies = $reflector->getConstructor()->getParameters();
-        }
-        elseif(!$reflector->getConstructor()->isPublic()){
-            throw new ContainerException("Constructor of {$definition} must not be public}");
-        }
+        $constructor = $reflector->getConstructor();
 
-        $resolvedDependencies = [];
-
-        foreach ($dependencies as $dependency) {
-            $className = $dependency->getType()->getName();
-
-            if ($dependency->isOptional()) {
-                continue;
+        if ($constructor) {
+            if (!$constructor->isPublic()) {
+                throw new ContainerException("Constructor of {$definition} must be a public}");
             }
-            if (!$this->isInstantiable($className)) {
-                throw new ContainerException("Missing required parameter {$dependency->getName()} of type {$className}");
-            }
-            $resolvedDependencies[] = $this->make($className);/// в creat funk
+            $dependencies = $constructor->getParameters();
         }
 
-        return $resolvedDependencies;
+        return $this->resolveParameters($dependencies, $definition, $parameters);
+
     }
 
-    private function resolveParameters(string $definition): array
+    /**
+     * @param array<ReflectionParameter> $constructorParameters
+     * @param string $definition
+     * @return array
+     * @throws ContainerException
+     */
+    private function resolveParameters(array $constructorParameters, string $definition, array $parameters = []): array
     {
-        $reflector = new ReflectionClass($definition);
-
-        $parameters = $reflector->hasMethod('__construct') ? $reflector->getConstructor()->getParameters() : [];
-
         $resolvedParameters = [];
 
-        foreach ($parameters as $methodParameter) {
+        foreach ($constructorParameters as $methodParameter) {
             $parameterName = $methodParameter->getName();
-            $parameterTypeName = $methodParameter->getType()->getName();
 
-            if (array_key_exists($parameterName, $this->with)) {
-                $resolvedParameters[] = $this->with[$parameterName];
+            if (array_key_exists($parameterName, $parameters)) {
+                $resolvedParameters[] = $parameters[$parameterName];
 
                 continue;
             }
+
             if ($methodParameter->isOptional()) {
+                if ($methodParameter->isDefaultValueAvailable()){
+                    $resolvedParameters[] = $methodParameter->getDefaultValue();
+                }
+
                 continue;
             }
+
+            if (!$methodParameter->hasType()) {
+                throw new ContainerException("Missing required parameter {$parameterName} in {$definition}");
+            }
+
+            $parameterTypeName = $methodParameter->getType()->getName();
             if (!$this->isInstantiable($parameterTypeName)) {
-                throw new ContainerException("Missing required parameter {$parameterName} of type {$parameterTypeName}");
+                throw new ContainerException("Missing required parameter {$parameterName} of type {$parameterTypeName} in {$definition}");
             }
 
             $resolvedParameters[] = $this->make($parameterTypeName);
@@ -183,16 +171,4 @@ class Container implements ContainerInterface
     {
         unset($this->inProgress[$definition]);
     }
-
-////Черновик!!!
-    public function has(string $id): bool
-    {
-        if (array_key_exists($id, $this->resolvedInstances) || $this->isInstantiable($id)) {
-            return true;
-        }
-
-        return false;
-    }
-
-
 }
