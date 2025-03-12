@@ -143,7 +143,7 @@ class Container implements ContainerInterface
             throw new NotFoundException($definition . ' is not instantiable');
         }
     }
-
+/////Фантастическое говнище - переделать
     public function isInstantiable(string $definition): bool
     {
         if (array_key_exists($definition, $this->binds)) {

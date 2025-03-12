@@ -1,24 +1,19 @@
 <?php
 
 use App\Container\Container;
-use App\ExampleInterface;
-use App\ExampleInterface2;
+use App\Http\Controllers\HomeController;
+use App\Routes\Router;
 
 include __DIR__ . '/../vendor/autoload.php';
+
 //
-//$reflector = new \ReflectionClass(\App\ExampleClass1::class);
-//$parameters = ['dd'];
-
-//foreach ($reflector->getConstructor()->getParameters() as $parameter) {
-//    $parameters[] = (string)$parameter->getType();
-//}
-//$bool = (class_exists($parameters[0]) || interface_exists($parameters[0])); ;
 $container = new Container();
+$container->bind(\App\Factories\RouteFactoryInterface::class, \App\Factories\RouteFactory::class);
 
-$container->bind(\App\ExampleInterface::class, \App\ExampleClass1::class);
+$router = $container->make(Router::class);
+$router->get('/', HomeController::class, 'index');
+$router->get('/{value}', HomeController::class, 'show');
 
-$result = $container->makeWith(\App\ExampleInterface::class,['name' => 'Вася','number' => 10]);
-//$result = $container->make(ExampleInterface::class);
-
-dd($result);
-
+//dd($router->getRoutes());
+return $router->dispatch(new \App\Http\Request());
+//dd($router);
