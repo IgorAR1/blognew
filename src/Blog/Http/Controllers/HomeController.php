@@ -3,7 +3,6 @@
 namespace App\Blog\Http\Controllers;
 
 use App\Core\Http\Controllers\ControllerInterface;
-use App\Core\Http\Request;
 use App\Core\Http\RequestInterface;
 
 class HomeController implements ControllerInterface
@@ -16,7 +15,7 @@ class HomeController implements ControllerInterface
 
     public function show(int $id, RequestInterface $request)
     {
-        dd('show', $id, $request);
-        return json_encode(['id' => $id]);
+        return json_encode(['massage' => 'hello']);
+        dump('show', $id, $request);
     }
 }

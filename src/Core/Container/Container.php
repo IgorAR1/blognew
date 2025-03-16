@@ -44,18 +44,23 @@ class Container implements ContainerInterface
 
     public function make(string $definition, array $parameters = []): object
     {
+
         if (isset($this->inProgress[$definition])) {
             throw new ContainerException('Cyclic dependency resolved instance is already in container');
         }
 
         if (array_key_exists($definition, $this->binds)) {
+            //TODO: тут бы подумать еще мб по лучше есть вариант сделать
+            if (is_object($this->binds[$definition])){
+                return $this->binds[$definition];
+            }
             $definition = $this->binds[$definition];
         }
+
 
         $this->notInstantiable($definition);
 
         $this->markAsInProgress($definition);
-
         try {
             $resolvedDependencies = $this->resolveDependencies($definition, $parameters);
 
@@ -151,7 +156,7 @@ class Container implements ContainerInterface
     public function isInstantiable(string $definition): bool
     {
         if (array_key_exists($definition, $this->binds)) {
-            if (class_exists($this->binds[$definition])) {
+            if (is_object($this->binds[$definition]) || class_exists($this->binds[$definition])) {
                 return true;
             }
         }

@@ -12,6 +12,8 @@ interface RouteInterface
 
     public function getController(): string;
 
+    public function getMiddleware(): array;
+
     public function getAction(): string;
 
     public function getParameters(): array;

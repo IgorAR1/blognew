@@ -7,9 +7,9 @@ use App\Core\Http\RequestInterface;
 
 class Router
 {
-    public function __construct(readonly RouteFactoryInterface $routeFactory,
-                                private RouteCollectionInterface $routeCollection,
-                                readonly ControllerDispatcherInterface $controllerDispatcher)
+    public function __construct(readonly RouteFactoryInterface         $routeFactory,
+                                private RouteCollectionInterface       $routeCollection,
+                                readonly ControllerDispatcherInterface $controllerDispatcher)///Диспатчер можно передавать в роут
     {
     }
 
@@ -23,7 +23,9 @@ class Router
         $route = $this->routeCollection->findRoute($request);
         $route->bindParameters($request);
 
-        $this->controllerDispatcher->dispatch($route->getController(), $route->getAction(), $route->getParameters());
+        $response = $this->controllerDispatcher->dispatch($route->getController(), $route->getAction(), $route->getParameters());
+
+        return $response;
 //        return $route->run();
     }
 

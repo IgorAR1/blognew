@@ -9,7 +9,8 @@ use Psr\Container\ContainerInterface;
 class ControllerDispatcher implements ControllerDispatcherInterface
 {
 
-    public function __construct(readonly ContainerInterface $container)
+    public function __construct(readonly ContainerInterface $container)//Конечно давать сюда контейнер - это полный отстой, можно замутить///А как это тестить?))
+                                                                        // резолвер который юзает контейнер чтоб сюда его не тащить но я хз, локатор так локатор
     {}
 
     public function dispatch(string $controllerDefinition, string $action, array $parameters)//ResponseInterface
@@ -32,6 +33,7 @@ class ControllerDispatcher implements ControllerDispatcherInterface
         return $controller;
     }
 
+    //TODO: конечно этот резолв по любому должен уехать в отдельный резолвер, а тут вызываться уже стек резолверов
     private function resolveParameters(string $controllerDefinition, string $action, array $parameters): array
     {
         try {

@@ -8,19 +8,19 @@ use App\Core\Middleware\MiddlewareInterface;
 class Route implements RouteInterface
 {
 
-    public array $parameters;
+    private array $parameters;
 
     /**
      * @var array<MiddlewareInterface>
      */
-    public array $middleware;
+    private array $middleware;
 
     protected string $compiled;
 
-    public function __construct(private string                $method,
-                                private string                $uri,
-                                private string                $controller,
-                                private                       $action)
+    public function __construct(private string $method,
+                                private string $uri,
+                                private string|\Closure $controller,
+                                private ?string $action = '')
     {
         $this->compileRoute();//Конечно славно делать такие вещи лениво
     }
@@ -34,7 +34,20 @@ class Route implements RouteInterface
 //    {
 //        return $this->;
 //    }
+    public function getController(): string
+    {
+        return $this->controller;
+    }
 
+    public function getAction(): string
+    {
+        return $this->action;
+    }
+
+    public function getParameters(): array
+    {
+        return $this->parameters;
+    }
 
     public function getPath(): string
     {
@@ -45,7 +58,6 @@ class Route implements RouteInterface
     {
         return $this->method;
     }
-
 
     public function setController(string $controller): static
     {
@@ -84,18 +96,8 @@ class Route implements RouteInterface
 
     }
 
-    public function getController(): string
+    public function getMiddleware(): array
     {
-        return $this->controller;
-    }
-
-    public function getAction(): string
-    {
-        return $this->action;
-    }
-
-    public function getParameters(): array
-    {
-        return $this->parameters;
+        return $this->middleware;
     }
 }

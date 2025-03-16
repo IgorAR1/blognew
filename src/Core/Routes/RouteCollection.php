@@ -23,6 +23,7 @@ class RouteCollection implements RouteCollectionInterface
 
     public function findRoute(RequestInterface $request): RouteInterface
     {
+        // TODO: нажно разбивать роуты по методам [GET =>[route],...], ну и с этим учетом оптимизировать поиск
         foreach ($this->routes as $route) {
             if ($route->matches($request)) {
 
@@ -31,5 +32,4 @@ class RouteCollection implements RouteCollectionInterface
         }
         throw new NotFoundRouteException("No route matching for method {$request->getMethod()} in {$request->getUri()}");
     }
-
 }

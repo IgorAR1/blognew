@@ -11,5 +11,4 @@ interface RouteCollectionInterface
     public function addRoute(RouteInterface $route): void;
 
     public function findRoute(RequestInterface $request): RouteInterface;
-
 }
