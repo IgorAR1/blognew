@@ -18,17 +18,23 @@ class Router
         return $this->routeCollection->getRoutes();
     }
 
-    public function dispatch(RequestInterface $request)
+//    public function dispatch(RequestInterface $request)//Это хэндлер psr 15!!!!!!!
+//    {
+//        $route = $this->findRoute($request);
+//        $route->bindParameters($request);
+//
+//
+//        $response = $this->controllerDispatcher->dispatch($route->getController(), $route->getParameters());///Это улетить в цепочку мидлваров
+//
+//
+//        return $response;
+////        return $route->run();
+//    }
+
+    public function findRoute(RequestInterface $request): RouteInterface
     {
-        $route = $this->routeCollection->findRoute($request);
-        $route->bindParameters($request);
-
-        $response = $this->controllerDispatcher->dispatch($route->getController(), $route->getParameters());
-
-        return $response;
-//        return $route->run();
+        return $this->routeCollection->findRoute($request);
     }
-
     public function addRoute(RouteInterface $route): void
     {
         $this->routeCollection->addRoute($route);
@@ -58,4 +64,6 @@ class Router
     {
         $this->addRoute($this->create('DELETE', $uri, $controller));
     }
+
+
 }

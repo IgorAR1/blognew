@@ -2,6 +2,7 @@
 
 use App\Blog\Http\Controllers\HomeController;
 use App\Core\Container\Container;
+use App\Core\Middleware\Dispatcher;
 use App\Core\Routes\Router;
 
 include __DIR__ . '/../vendor/autoload.php';
@@ -32,7 +33,9 @@ $router->get('/{id}', [HomeController::class, 'show']);
 //dd($matches);
 //dd(is_callable(new \App\Blog\Http\Controllers\Controller()));
 //dd($router->getRoutes());
-$response =  $router->dispatch(new \App\Core\Http\Request());
+$dispatcher = new Dispatcher();
+
+$response =  $dispatcher->handle(new \App\Core\Http\Request());
 
 dd($response);
 //dd($router);

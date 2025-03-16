@@ -3,7 +3,6 @@
 namespace App\Core\Routes;
 
 use App\Core\Container\Exceptions\NotFoundContainerException;
-use App\Core\Http\Controllers\ControllerInterface;
 use Psr\Container\ContainerInterface;
 
 final class ControllerDispatcher implements ControllerDispatcherInterface
