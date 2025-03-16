@@ -10,7 +10,7 @@ interface RouteInterface
 
     public function getCompiled();
 
-    public function getController(): string;
+    public function getController(): mixed;
 
     public function getMiddleware(): array;
 

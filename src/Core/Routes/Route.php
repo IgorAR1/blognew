@@ -19,8 +19,7 @@ class Route implements RouteInterface
 
     public function __construct(private string $method,
                                 private string $uri,
-                                private string|\Closure $controller,
-                                private ?string $action = '')
+                                private mixed $controller)
     {
         $this->compileRoute();//Конечно славно делать такие вещи лениво
     }
@@ -34,7 +33,7 @@ class Route implements RouteInterface
 //    {
 //        return $this->;
 //    }
-    public function getController(): string
+    public function getController(): mixed
     {
         return $this->controller;
     }

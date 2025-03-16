@@ -9,7 +9,7 @@ class Router
 {
     public function __construct(readonly RouteFactoryInterface         $routeFactory,
                                 private RouteCollectionInterface       $routeCollection,
-                                readonly ControllerDispatcherInterface $controllerDispatcher)///Диспатчер можно передавать в роут
+                                readonly ControllerDispatcherInterface $controllerDispatcher)
     {
     }
 
@@ -23,7 +23,7 @@ class Router
         $route = $this->routeCollection->findRoute($request);
         $route->bindParameters($request);
 
-        $response = $this->controllerDispatcher->dispatch($route->getController(), $route->getAction(), $route->getParameters());
+        $response = $this->controllerDispatcher->dispatch($route->getController(), $route->getParameters());
 
         return $response;
 //        return $route->run();
@@ -34,28 +34,28 @@ class Router
         $this->routeCollection->addRoute($route);
     }
 
-    public function create(string $method, string $uri, string $controller, string $action): RouteInterface
+    public function create(string $method, string $uri, mixed $controller): RouteInterface
     {
-        return $this->routeFactory->create($method, $uri, $controller, $action);
+        return $this->routeFactory->create($method, $uri, $controller);
     }
 
-    public function get(string $uri, string $controller, string $action): void
+    public function get(string $uri, mixed $controller): void
     {
-        $this->addRoute($this->create('GET', $uri, $controller, $action));
+        $this->addRoute($this->create('GET', $uri, $controller));
     }
 
-    public function post(string $uri, string $controller, string $action): void
+    public function post(string $uri, mixed $controller): void
     {
-        $this->addRoute($this->create('POST', $uri, $controller, $action));
+        $this->addRoute($this->create('POST', $uri, $controller));
     }
 
-    public function patch(string $uri, string $controller, string $action): void
+    public function patch(string $uri, mixed $controller): void
     {
-        $this->addRoute($this->create('PATCH', $uri, $controller, $action));
+        $this->addRoute($this->create('PATCH', $uri, $controller));
     }
 
-    public function delete(string $uri, string $controller, string $action): void
+    public function delete(string $uri, mixed $controller): void
     {
-        $this->addRoute($this->create('DELETE', $uri, $controller, $action));
+        $this->addRoute($this->create('DELETE', $uri, $controller));
     }
 }

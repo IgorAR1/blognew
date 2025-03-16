@@ -6,43 +6,67 @@ use App\Core\Container\Exceptions\NotFoundContainerException;
 use App\Core\Http\Controllers\ControllerInterface;
 use Psr\Container\ContainerInterface;
 
-class ControllerDispatcher implements ControllerDispatcherInterface
+final class ControllerDispatcher implements ControllerDispatcherInterface
 {
-
-    public function __construct(readonly ContainerInterface $container)//Конечно давать сюда контейнер - это полный отстой, можно замутить///А как это тестить?))
-                                                                        // резолвер который юзает контейнер чтоб сюда его не тащить но я хз, локатор так локатор
-    {}
-
-    public function dispatch(string $controllerDefinition, string $action, array $parameters)//ResponseInterface
+    public function __construct(readonly ContainerInterface $container)
     {
-        $controller = $this->resolveController($controllerDefinition, $action);
-
-        $parameters = $this->resolveParameters($controllerDefinition, $action, $parameters);
-
-        return $this->runController($controller, $action, $parameters);
     }
 
-    private function resolveController(string $controllerDefinition, string $action): ControllerInterface
+    public function dispatch(mixed $controller, array $parameters)//ResponseInterface
     {
-        try {
-            $controller = $this->container->make($controllerDefinition);
-        } catch (NotFoundContainerException $e) {//NotFoundException!!!!!!!!!!!
-            throw new RoutingException("Controller {$controllerDefinition} does not exist.");
+        $controller = $this->resolveController($controller);
+
+        $parameters = $this->resolveParameters($controller, $parameters);
+
+        return $this->runController($controller, $parameters);
+    }
+
+    private function resolveController(mixed $controller): callable
+    {
+        if ($controller instanceof \Closure) {
+            return $controller;
         }
 
-        return $controller;
+        if (is_array($controller)) {
+            try {
+                $instance = $this->container->make($controller[0]);
+            } catch (NotFoundContainerException $e) {
+                throw new RoutingException("Controller {$controller[0]} does not exist.");
+            }
+
+            if (is_callable($instance)) {
+                return [$instance, '_invoke'];
+            }
+
+            return [$instance, $controller[1]];
+        }
+        //TODO: ошибку поменять
+        throw new RoutingException("Controller {$controller} is not a callable.");
+//        return $controller;
     }
 
     //TODO: конечно этот резолв по любому должен уехать в отдельный резолвер, а тут вызываться уже стек резолверов
-    private function resolveParameters(string $controllerDefinition, string $action, array $parameters): array
+    private function resolveParameters(callable $controller, array $parameters): array
     {
-        try {
-            $method = new \ReflectionMethod($controllerDefinition, $action);
-        } catch (\ReflectionException $exception) {
-            throw new RoutingException("Action {$controllerDefinition} does not exist.");
+        if (is_array($controller)){
+            $reflector = new \ReflectionMethod($controller[0], $controller[1]);
         }
 
-        $controllerParameters = $method->getParameters();
+        if ($controller instanceof \Closure) {
+            $reflector = new \ReflectionFunction($controller);
+        }
+
+//        if (is_object($controller)){
+//            $reflector = new \ReflectionMethod($controller, '__invoke');
+//        }
+
+//        try {
+//            $method = new \ReflectionMethod($controller);
+//        } catch (\ReflectionException $exception) {
+//            throw new RoutingException("Action {$controller} does not exist.");
+//        }
+
+        $controllerParameters = $reflector->getParameters();
 
         $resolvedParameters = [];
 
@@ -64,13 +88,13 @@ class ControllerDispatcher implements ControllerDispatcherInterface
             }
 
             if (!$methodParameter->hasType()) {
-                throw new \ArgumentCountError("Missing required parameter {$parameterName} in {$action} method");
+                throw new \ArgumentCountError("Missing required parameter {$parameterName} in {$reflector->getName()} method");
             }
 
             $parameterTypeName = $methodParameter->getType()->getName();
 
             if (!$this->container->has($parameterTypeName)) {
-                throw new \ArgumentCountError("Missing required parameter {$parameterName} of type {$parameterTypeName} in {$action} method");
+                throw new \ArgumentCountError("Missing required parameter {$parameterName} of type {$parameterTypeName} in {$reflector->getName()} method");
             }
 
             $resolvedParameters[] = $this->container->make($parameterTypeName);
@@ -80,9 +104,9 @@ class ControllerDispatcher implements ControllerDispatcherInterface
     }
 
 
-    private function runController(ControllerInterface $controller, string $action, array $parameters)//ResponseInterface
+    private function runController(callable $controller, array $parameters)//ResponseInterface
     {
-        return $controller->{$action}(...$parameters);
+        return $controller(...$parameters);
     }
 
 }
