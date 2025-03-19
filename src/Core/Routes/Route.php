@@ -2,8 +2,8 @@
 
 namespace App\Core\Routes;
 
+use App\Core\Http\Middleware\MiddlewareInterface;
 use App\Core\Http\RequestInterface;
-use App\Core\Middleware\MiddlewareInterface;
 
 class Route implements RouteInterface
 {
@@ -19,15 +19,17 @@ class Route implements RouteInterface
 
     public function __construct(private string $method,
                                 private string $uri,
-                                private mixed $controller)
+                                private mixed $controller,)
+//                                private Dispatcher $dispatcher)
     {
         $this->compileRoute();//Конечно славно делать такие вещи лениво
     }
 
-//    public function run()//ResponseInterface
-//    {
+    public function run(RequestInterface $request)//ResponseInterface
+    {
+//        $this->dispatcher->handle($request);
 //       return $this->controllerDispatcher()->dispatch($this->controller, $this->action, $this->parameters);
-//    }
+    }
 
 //    private function controllerDispatcher(): ControllerDispatcherInterface
 //    {

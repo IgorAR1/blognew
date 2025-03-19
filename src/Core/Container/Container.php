@@ -92,6 +92,7 @@ class Container implements ContainerInterface
             if (!$constructor->isPublic()) {
                 throw new ContainerException("Constructor of {$definition} must be a public}");
             }
+
             $dependencies = $constructor->getParameters();
         }
 
@@ -130,6 +131,8 @@ class Container implements ContainerInterface
             }
 
             $parameterTypeName = $methodParameter->getType()->getName();
+
+            //TODO: isPrimitive() если сюда приде абстракция - он выкинет эту ошибку - а мне надо is not instantiable ofc
             if (!$this->isInstantiable($parameterTypeName)) {
                 throw new \ArgumentCountError("Missing required parameter {$parameterName} of type {$parameterTypeName} in {$definition}");
             }

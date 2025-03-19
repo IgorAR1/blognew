@@ -3,12 +3,25 @@
 namespace App\Core\Routes;
 
 use App\Core\Container\Exceptions\NotFoundContainerException;
+use App\Core\Http\Middleware\MiddlewareInterface;
+use App\Core\Http\Middleware\RequestHandlerInterface;
+use App\Core\Http\RequestInterface;
+use App\Core\Http\Response;
+use App\Core\Http\ResponseInterface;
 use Psr\Container\ContainerInterface;
 
 final class ControllerDispatcher implements ControllerDispatcherInterface
 {
     public function __construct(readonly ContainerInterface $container)
     {
+    }
+    public function process(RequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
+    {
+        return $this->handle($request);
+    }
+    public function handle(RequestInterface $request): ResponseInterface//?
+    {
+        return new Response();
     }
 
     public function dispatch(mixed $controller, array $parameters)//ResponseInterface
@@ -107,5 +120,6 @@ final class ControllerDispatcher implements ControllerDispatcherInterface
     {
         return $controller(...$parameters);
     }
+
 
 }

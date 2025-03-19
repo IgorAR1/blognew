@@ -1,11 +1,10 @@
 <?php
 
-namespace App\Core\Middleware;
+namespace App\Core\Http\Middleware;
 
 
 use App\Core\Http\RequestInterface;
 use App\Core\Http\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
 
 interface RequestHandlerInterface
 {

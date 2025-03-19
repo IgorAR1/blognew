@@ -6,7 +6,7 @@ use App\Core\Http\RequestInterface;
 
 interface RouteInterface
 {
-//    public function run();//ResponseInterface
+    public function run(RequestInterface $request);//ResponseInterface
 
     public function getCompiled();
 

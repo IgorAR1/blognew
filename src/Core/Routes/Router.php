@@ -8,8 +8,7 @@ use App\Core\Http\RequestInterface;
 class Router
 {
     public function __construct(readonly RouteFactoryInterface         $routeFactory,
-                                private RouteCollectionInterface       $routeCollection,
-                                readonly ControllerDispatcherInterface $controllerDispatcher)
+                                private RouteCollectionInterface       $routeCollection)
     {
     }
 
@@ -29,7 +28,7 @@ class Router
 //
 //        return $response;
 ////        return $route->run();
-//    }
+//    }?????????
 
     public function findRoute(RequestInterface $request): RouteInterface
     {
