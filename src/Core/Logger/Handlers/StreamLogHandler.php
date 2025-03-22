@@ -2,23 +2,32 @@
 
 namespace App\Core\Logger\Handlers;
 
+use App\Core\Logger\Formatters\FormatterInterface;
+use App\Core\Logger\Formatters\LineFormatter;
 use App\Core\Logger\LogRecord;
-
-class StreamLogHandler implements LogHandlerInterface
+//TODO: это прям точно в переделку
+final class StreamLogHandler implements LogHandlerInterface
 {
-    public function __construct(private string $path = '')
+    private FormatterInterface $formatter;
+
+    public function __construct(readonly string $path = '')
     {
-//        if (empty($this->path)) {
-//            ///BasePath
-//        }
+        $this->formatter = $this->getFormatter();
+    }
+
+    private function getFormatter(): FormatterInterface
+    {
+        return (new LineFormatter())->setBasePath($this->path);
     }
 
     public function handle(LogRecord $record): void
     {
+        $file = fopen($this->path,'a');
 
-        dump($_ENV);
-        dump(getcwd());
-        dump($this->path);
-        dd(\is_resource(fopen($this->path,'w+')));
+        $record = $this->formatter->format($record);
+
+        fwrite($file, $record);
+
+        fclose($file);
     }
 }

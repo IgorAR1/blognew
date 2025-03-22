@@ -1,18 +1,15 @@
 <?php
 
-use App\Blog\Http\Controllers\HomeController;
-use App\Core\Container\Container;
-//use App\Core\Http\Middleware\Dispatcher;
-use App\Core\Http\Exception\ExceptionHandler;
-use App\Core\Http\Middleware\MiddlewareDispatcher;
-use App\Core\Routes\ControllerDispatcher;
-use App\Core\Routes\Router;
+use Dotenv\Dotenv;
 
 include __DIR__ . '/../vendor/autoload.php';
 
-    $app = new \App\Core\Application\Application();
-    $request = new \App\Core\Http\Request();
-    $app->handleRequest($request);
+$dotenv = Dotenv::createImmutable(__DIR__ . '/../');
+$dotenv->load();
+
+$app = new \App\Core\Application\Application();
+$request = new \App\Core\Http\Request();
+$app->handleRequest($request);
 
 
 

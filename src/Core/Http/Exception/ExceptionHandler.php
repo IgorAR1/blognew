@@ -11,7 +11,7 @@ class ExceptionHandler
 
     public function handle(\Exception $e): never
     {
-        $this->logger->alert($e->getMessage());
+        $this->logger->alert($e->getMessage(), ['exception' => $e]);
 
         throw $e;
     }

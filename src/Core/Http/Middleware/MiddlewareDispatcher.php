@@ -57,7 +57,7 @@ class MiddlewareDispatcher implements MiddlewareInterface, RequestHandlerInterfa
                 }
             };
         }
-        dump('ll');
+
         return new class implements RequestHandlerInterface {///Если последний элемент цепи не дает респонс - исключение потому что блять если выходишь за массив он нулл возвращает
             public function handle(RequestInterface $request): ResponseInterface
             {
@@ -66,8 +66,13 @@ class MiddlewareDispatcher implements MiddlewareInterface, RequestHandlerInterfa
         };
     }
 
-    public function addMiddleware(callable|MiddlewareInterface|string $middleware): void
+    public function addMiddleware(callable|MiddlewareInterface|string|array $middleware): void
     {
+        if (is_array($middleware)) {
+            $this->stack = array_merge($this->stack, $middleware);
+
+            return;
+        }
         $this->stack[] = $middleware;
     }
 
