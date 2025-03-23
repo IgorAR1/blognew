@@ -5,8 +5,14 @@ namespace App\Core\Application;
 use App\Blog\Http\Controllers\HomeController;
 use App\Core\Config\Config;
 use App\Core\Container\Container;
+use App\Core\Event\EventDispatcher;
+use App\Core\Event\ListenerProviderComposite;
+use App\Core\Event\testEvent\Event1;
+use App\Core\Event\testListener\Listener1;
 use App\Core\Http\Exception\ExceptionHandler;
+use App\Core\Http\Exception\ExceptionHandlerInterface;
 use App\Core\Http\Middleware\MiddlewareDispatcher;
+use App\Core\Http\Middleware\NotFoundErrorMiddleware;
 use App\Core\Http\RequestInterface;
 use App\Core\Http\ResponseInterface;
 use App\Core\Logger\Handlers\LogHandlerInterface;
@@ -15,7 +21,10 @@ use App\Core\Logger\AbstractLogger;
 use App\Core\Logger\Logger;
 use App\Core\Routes\ControllerDispatcher;
 use App\Core\Routes\Router;
+use Psr\EventDispatcher\EventDispatcherInterface;
+use Psr\EventDispatcher\ListenerProviderInterface;
 use Psr\Log\LoggerInterface;
+use function PHPUnit\Framework\never;
 
 class Application extends Container
 {
@@ -34,20 +43,25 @@ class Application extends Container
     {
         try {
 
+
 //            dd(parse_ini_file('/var/www/blog/.env'));
             $this->bind(\App\Core\Factories\RouteFactoryInterface::class, \App\Core\Factories\RouteFactory::class);
             $this->bind(\App\Core\Routes\RouteCollectionInterface::class, \App\Core\Routes\RouteCollection::class);
             $this->bind(\App\Core\Http\RequestInterface::class, \App\Core\Http\Request::class);
             $this->bind(\App\Core\Routes\ControllerDispatcherInterface::class, \App\Core\Routes\ControllerDispatcher::class);
             $this->bind(\Psr\Container\ContainerInterface::class, $this);//А вот вам и синглтон локатор
-
+            $this->bind(ListenerProviderInterface::class, ListenerProviderComposite::class);
             $this->bind(LogHandlerInterface::class, $this->makeWith(StreamLogHandler::class, ['path' => $this->config->get('logs.default.path')]));
+            $this->bind(ListenerProviderInterface::class,$this->makeWith(ListenerProviderComposite::class,['providers' => $this->config->get('events')]));
+            $this->bind(EventDispatcherInterface::class, $this->make(EventDispatcher::class));
+
+
 
 //            dd($this->config('logs.default.path'));
             $this->bind(LoggerInterface::class, Logger::class);
 //            $this->bind(LogHandlerInterface::class,StreamLogHandler::class);
             $logger = $this->make(LoggerInterface::class);
-
+            $eventDispatcher = $this->make(EventDispatcherInterface::class);
 //            $logger->alert('ddd');
             $router = $this->make(Router::class);
 
@@ -66,11 +80,11 @@ class Application extends Container
 //            $dispatcher = new MiddlewareDispatcher();
 
 
-
             $this->setGlobalMiddlewares([
+                new NotFoundErrorMiddleware(),
                 new \App\Core\Http\Middleware\testMiddleware\Middleware1(),
                 new \App\Core\Http\Middleware\testMiddleware\Middleware2(),
-                ]);
+            ]);
 
             $controllerDispatcher = $this->make(ControllerDispatcher::class);
 
@@ -87,6 +101,7 @@ class Application extends Container
 //
             $dispatcher = new MiddlewareDispatcher();
 
+
             $dispatcher->setMiddlewares($this->middlewares);
 
             $dispatcher->addMiddleware([
@@ -95,13 +110,18 @@ class Application extends Container
                 ]
             );
 
+            $eventDispatcher->dispatch(new Event1());
 
             return $dispatcher->handle($request);
-        } catch (\Exception $exception) {
-            (new ExceptionHandler($logger))->handle($exception);//TODO: setCustomHandler
+        } catch (\Exception $e) {
+            return $this->handleException($e);//TODO: setCustomHandler///Вообще через ивент все сделать
         }
     }
 
+    private function handleException(\Throwable $e): ResponseInterface
+    {
+        return (new ExceptionHandler())->handle($e);
+    }
 
     private function prepareConfig(): void
     {

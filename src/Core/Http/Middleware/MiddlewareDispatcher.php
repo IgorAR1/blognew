@@ -7,7 +7,7 @@ use App\Core\Http\Response;
 use App\Core\Http\ResponseInterface;
 use LogicException;
 
-class MiddlewareDispatcher implements MiddlewareInterface, RequestHandlerInterface, MiddlewareDispatcherInterface
+class MiddlewareDispatcher implements MiddlewareDispatcherInterface
 {
     public function __construct(protected array $stack = [])
     {}
