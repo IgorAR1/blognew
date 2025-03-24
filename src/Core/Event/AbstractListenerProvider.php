@@ -21,6 +21,13 @@ abstract class AbstractListenerProvider implements ListenerProviderInterface
         }
 
         return [];
+
     }
+
+    public function addListener(string $eventName, callable $listener): void
+    {
+        $this->listeners[$eventName][] = $listener;
+    }
+
     abstract protected function register(): void;
 }

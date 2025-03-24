@@ -4,11 +4,10 @@ namespace App\Core\Event;
 
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\EventDispatcher\ListenerProviderInterface;
+use Psr\EventDispatcher\StoppableEventInterface;
 
 class EventDispatcher implements EventDispatcherInterface
 {
-//    private iterable $listeners;
-
     public function __construct(readonly ListenerProviderInterface $listenerProvider)
     {}
 
@@ -16,21 +15,15 @@ class EventDispatcher implements EventDispatcherInterface
     {
         $listeners = $this->listenerProvider->getListenersForEvent($event);
 
-//        if (is_callable($listeners)) {
-//            $listeners($event);
-//        }
-
-        if (is_iterable($listeners)) {
-            foreach ($listeners as $listener) {
-                $listener($event);
+        foreach ($listeners as $listener) {
+            if ($event instanceof StoppableEventInterface && $event->isPropagationStopped()) {
+                break;
             }
+            if (!is_callable($listener)){
+                throw new \RuntimeException('Event listener is not a callable');
+            }
+            $listener($event);
         }
-
         return $event;
     }
-
-//    public function addListener(string $eventName, callable $listener): void///А нужно ли ?:/
-//    {
-//        $this->listeners[$eventName][] = $listener;
-//    }
 }

@@ -29,4 +29,14 @@ class ListenerProviderComposite implements ListenerProviderInterface
 
         return $listenersForEvent;
     }
+
+    public function addProvider(string $provider): void
+    {
+        $this->providers[] = $provider;
+    }
+
+    public function setProviders(array $providers): void
+    {
+        $this->providers = $providers;
+    }
 }

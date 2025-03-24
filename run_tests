@@ -1,2 +1,2 @@
 #!/bin/bash
-sudo docker exec -it php-blog vendor/bin/phpunit
+sudo docker exec -it php-blog vendor/bin/phpunit --display-deprecations
