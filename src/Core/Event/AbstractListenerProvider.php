@@ -12,7 +12,7 @@ abstract class AbstractListenerProvider implements ListenerProviderInterface
     }
 
     protected array $listeners = [];
-    public function getListenersForEvent(object $event): iterable
+    public function getListenersForEvent(object $event): iterable///А если генератор
     {
         $eventName = $event::class;
 

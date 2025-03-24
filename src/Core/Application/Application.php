@@ -3,6 +3,7 @@
 namespace App\Core\Application;
 
 use App\Blog\Http\Controllers\HomeController;
+use App\Core\Cache\ArrayCache;
 use App\Core\Config\Config;
 use App\Core\Container\Container;
 use App\Core\Event\EventDispatcher;
@@ -25,7 +26,17 @@ use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\EventDispatcher\ListenerProviderInterface;
 use Psr\Log\LoggerInterface;
 use function PHPUnit\Framework\never;
-
+/////////////////////////////////////////////////////////
+/// //TODO: мне кажется что все что связанно с контейнеризацией
+///  и конфигурацие остается здесь - остальное летит в ядро Kernel а тут мы тупо резолвим в общем рил Composition root
+/// Kernel
+///   public function __construct(Application $app, Router $router)
+//    {
+//        $this->app = $app;
+//        $this->router = $router;
+//
+//        $this->syncMiddlewareToRouter();
+//    }
 class Application extends Container
 {
     private string $basePath;
@@ -36,37 +47,58 @@ class Application extends Container
 
     public function __construct()
     {
-        $this->prepareConfig();
+        $this->prepareConfig();//???
+    }
+
+    protected function configureContainer()
+    {
+        $this->bind(\App\Core\Factories\RouteFactoryInterface::class, \App\Core\Factories\RouteFactory::class);
+        $this->bind(\App\Core\Routes\RouteCollectionInterface::class, \App\Core\Routes\RouteCollection::class);
+        $this->bind(\App\Core\Http\RequestInterface::class, \App\Core\Http\Request::class);
+        $this->bind(\App\Core\Routes\ControllerDispatcherInterface::class, \App\Core\Routes\ControllerDispatcher::class);
+        $this->bind(\Psr\Container\ContainerInterface::class, $this);//А вот вам и синглтон локатор
+        $this->bind(ListenerProviderInterface::class, ListenerProviderComposite::class);
+        $this->bind(LogHandlerInterface::class, $this->makeWith(StreamLogHandler::class, ['path' => $this->config->get('logs.default.path')]));
+        $this->bind(ListenerProviderInterface::class,$this->makeWith(ListenerProviderComposite::class,['providers' => $this->config->get('events')]));
+        $this->bind(EventDispatcherInterface::class, $this->make(EventDispatcher::class));
+        $this->bind(LoggerInterface::class, Logger::class);
+    }
+
+    protected function configureRoutes(Router $router): void //TODO: RouterInterface
+    {
+        $router->get('/', [HomeController::class, 'index']);
+        $router->get('/{id}', [HomeController::class, 'show']);
+    }
+
+    protected function configure()
+    {
+
     }
 
     public function handleRequest(RequestInterface $request): ResponseInterface
     {
         try {
+            $this->configureContainer();
 
+            $router = $this->make(Router::class);
 
+            $this->configureRoutes($router);
 //            dd(parse_ini_file('/var/www/blog/.env'));
-            $this->bind(\App\Core\Factories\RouteFactoryInterface::class, \App\Core\Factories\RouteFactory::class);
-            $this->bind(\App\Core\Routes\RouteCollectionInterface::class, \App\Core\Routes\RouteCollection::class);
-            $this->bind(\App\Core\Http\RequestInterface::class, \App\Core\Http\Request::class);
-            $this->bind(\App\Core\Routes\ControllerDispatcherInterface::class, \App\Core\Routes\ControllerDispatcher::class);
-            $this->bind(\Psr\Container\ContainerInterface::class, $this);//А вот вам и синглтон локатор
-            $this->bind(ListenerProviderInterface::class, ListenerProviderComposite::class);
-            $this->bind(LogHandlerInterface::class, $this->makeWith(StreamLogHandler::class, ['path' => $this->config->get('logs.default.path')]));
-            $this->bind(ListenerProviderInterface::class,$this->makeWith(ListenerProviderComposite::class,['providers' => $this->config->get('events')]));
-            $this->bind(EventDispatcherInterface::class, $this->make(EventDispatcher::class));
 
-
-
+//            $cache = new ArrayCache();
+//                                                        $item = $cache->getItem('hui2')->expiresAt(new \DateTime('2025-03-25 10:00:00'))->set('huitenb2');
+//
+//                                                        $cache->save($item);
+//                                                        dd($cache->hasItem('hui2'));
 //            dd($this->config('logs.default.path'));
-            $this->bind(LoggerInterface::class, Logger::class);
+
 //            $this->bind(LogHandlerInterface::class,StreamLogHandler::class);
             $logger = $this->make(LoggerInterface::class);
             $eventDispatcher = $this->make(EventDispatcherInterface::class);
 //            $logger->alert('ddd');
-            $router = $this->make(Router::class);
-
-            $router->get('/', [HomeController::class, 'index']);
-            $router->get('/{id}', [HomeController::class, 'show']);
+///////////////////////////////////////////////////////////
+            //-Это в configureRoutes()
+            ///////////////////////////////////////////////////////////////////
 //$router->get('/{id}', [HomeController::class, 'show']);
 //$router->get('/{id}', [\App\Blog\Http\Controllers\Controller::class]);
 //$router->get('/{id}', function ($id) {
