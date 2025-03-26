@@ -7,7 +7,7 @@ class Config
     public function __construct(private array $parameters = [])
     {}
 
-    public function get(string $key = ''): array|string
+    public function get(string $key = ''): array|string|null
     {
         if ($key === '') {
             return $this->parameters;
@@ -17,9 +17,8 @@ class Config
         $value = $this->parameters;
 
         foreach ($keys as $k) {
-            if (isset($value[$k])) {
-                $value = $value[$k];
-            }
+            $value = $value[$k] ?? null;
+
         }
 
         return $value;

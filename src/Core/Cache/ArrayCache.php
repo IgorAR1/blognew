@@ -2,49 +2,31 @@
 
 namespace App\Core\Cache;
 
-use DateInterval;
-use DateTime;
-use DateTimeInterface;
 use Psr\Cache\CacheItemInterface;
 use Psr\Cache\CacheItemPoolInterface;
 
-class ArrayCache implements CacheItemPoolInterface
+final class ArrayCache extends AbstractCache
 {
-
-    private function createCacheItem(string $key, ?string $value, bool $isHit): CacheItemInterface
-    {
-        return new CacheItem($key, $value, $isHit);
-    }
-
-    /**
-     * @var array<CacheItemInterface>
-     */
     private array $items = [];
-    private array $defferedItems = [];
+    private array $deferredItems = [];//?
 
     public function getItem(string $key): CacheItemInterface
     {
-        if ($this->hasItem($key)) {
-            if ()
+        if ($isHit = $this->hasItem($key)) {
             $value = $this->items[$key]['value'];
-            $isHit = true;
-
         } else {
             $value = null;
-            $isHit = false;
         }
 
         return $this->createCacheItem($key, $value, $isHit);
     }
-
+///Тут возможно нужен генератор
     public function getItems(array $keys = []): iterable
     {
         $result = [];
 
         foreach ($keys as $key) {
-            if ($item = $this->getItem($key)) {
-                $result[$key] = $item;
-            }
+            $result = $this->getItem($key);
         }
 
         return $result;
@@ -52,16 +34,16 @@ class ArrayCache implements CacheItemPoolInterface
 
     public function hasItem(string $key): bool
     {
-//        if (isset($this->items[$key]) && $this->items[$key]['expiration'] > new DateTime()) {
-//
-//            return true;
-//        }
-
-        if (isset($this->items[$key])) {
+        if (isset($this->items[$key]) && $this->isNotExpired($key)) {
             return true;
         }
 
-        return isset($this->items[$key]) && !$this->deleteItem($key);
+        return !$this->deleteItem($key);
+    }
+
+    private function isNotExpired(string $key): bool
+    {
+        return ($this->items[$key]['expiration'] > microtime(true) || !null === $this->items[$key]['expiration']);
     }
 
     public function clear(): bool
@@ -89,24 +71,39 @@ class ArrayCache implements CacheItemPoolInterface
 
     public function save(CacheItemInterface $item): bool
     {
-        $item = $item->toArray();
-        $this->items[$item['key']]['value'] = $item['value'];
-        $this->items[$item['key']]['expiration'] = $item['expiration'];
-        $this->items[$item['key']]['time'] = $item['time'];
+        $className = get_class($item);
+        $item = (array)$item;
+
+        $key = $item["key"];
+        $value = $item["\x00$className\x00value"];
+        $expiration = $item["\x00$className\x00expiration"];
+
+        if (isset($this->items[$key]) && !$this->isNotExpired($key)) {
+            return $this->deleteItem($key);
+        }
+
+        $this->items[$key] = [
+            'value' => $value,
+            'expiration' => $expiration
+        ];
 
         return true;
     }
 
     public function saveDeferred(CacheItemInterface $item): bool
     {
-        $this->defferedItems[] = $item;
+        $this->deferredItems[] = $item;
 
         return true;
     }
 
     public function commit(): bool
     {
-        $this->items = array_merge($this->items, $this->defferedItems);
+        foreach ($this->deferredItems as $item) {
+            $this->save($item);
+        }
+
+        $this->deferredItems = [];
 
         return true;
     }

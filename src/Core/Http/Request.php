@@ -4,6 +4,9 @@ namespace App\Core\Http;
 
 class Request implements RequestInterface
 {
+    private string $controller;
+    private mixed $attribute;
+
     public function getMethod(): string
     {
         return $_SERVER['REQUEST_METHOD'];
@@ -34,5 +37,26 @@ class Request implements RequestInterface
     public function getBody()
     {
         return file_get_contents('php://input');
+    }
+
+    public function getAttribute(string $name,mixed $default = null): mixed
+    {
+        if (isset($this->attribute[$name])) {
+            return $this->attribute[$name];
+        }
+
+        return $default;
+    }
+
+    public function withAttribute(mixed $attribute): static
+    {
+        $this->attribute = $attribute;
+
+        return $this;
+    }
+
+    public function getQueryParams()
+    {
+        return $_GET;
     }
 }

@@ -2,10 +2,9 @@
 
 namespace App\Core\Cache;
 
-use App\Core\Arrayable;
 use Psr\Cache\CacheItemInterface;
 
-final class CacheItem implements CacheItemInterface, Arrayable
+final class CacheItem implements CacheItemInterface
 {
 
     //items => [
@@ -16,14 +15,12 @@ final class CacheItem implements CacheItemInterface, Arrayable
     //]
     //]
 
-    private ?\DateTimeInterface $expiration = null;
-    private int|null|\DateInterval $time = null;
+    private int|float|null $expiration = null;
 
     public function __construct(readonly string $key,
                                 private ?string $value = null,
                                 private bool    $isHit = false)
-    {
-    }
+    {}
 
     public function getKey(): string
     {
@@ -49,26 +46,26 @@ final class CacheItem implements CacheItemInterface, Arrayable
 
     public function expiresAt(?\DateTimeInterface $expiration): static
     {
-        $this->expiration = $expiration;
+        if ($expiration instanceof \DateTimeInterface) {
+            $this->expiration = $expiration->getTimestamp();
+        } else {
+            $this->expiration = null;
+        }
 
         return $this;
     }
 
     public function expiresAfter(\DateInterval|int|null $time): static
     {
-        $this->time = $time;
+        if (null === $time) {
+            $this->expiration = null;
+        } elseif ($time instanceof \DateInterval) {
+            $this->expiration = (microtime(true) + (float)\DateTimeImmutable::createFromFormat('U', 0)->add($time)->format('U.u'));
+        } elseif (is_integer($time)) {
+            $this->expiration = ($time + microtime(true));
+        }
 
         return $this;
     }
 
-    public function toArray(): array
-    {
-      return [
-          'key' => $this->key,
-          'value' => $this->value,
-          'isHit' => $this->isHit,
-          'expiration' => $this->expiration,
-          'time' => $this->time,
-      ];
-    }
 }

@@ -34,9 +34,9 @@ class Router
     {
         return $this->routeCollection->findRoute($request);
     }
-    public function addRoute(RouteInterface $route): void
+    public function addRoute(string $method, string $uri, mixed $controller): void
     {
-        $this->routeCollection->addRoute($route);
+        $this->routeCollection->addRoute($method, $this->create($method, $uri, $controller));
     }
 
     public function create(string $method, string $uri, mixed $controller): RouteInterface
@@ -46,23 +46,22 @@ class Router
 
     public function get(string $uri, mixed $controller): void
     {
-        $this->addRoute($this->create('GET', $uri, $controller));
+        $this->addRoute('GET', $uri, $controller);
     }
 
     public function post(string $uri, mixed $controller): void
     {
-        $this->addRoute($this->create('POST', $uri, $controller));
+        $this->addRoute('POST', $uri, $controller);
     }
 
     public function patch(string $uri, mixed $controller): void
     {
-        $this->addRoute($this->create('PATCH', $uri, $controller));
+        $this->addRoute('PATCH', $uri, $controller);
     }
 
     public function delete(string $uri, mixed $controller): void
     {
-        $this->addRoute($this->create('DELETE', $uri, $controller));
+        $this->addRoute('DELETE', $uri, $controller);
     }
-
 
 }

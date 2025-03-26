@@ -9,7 +9,9 @@ RUN apt-get update \
   && apt-get install -y build-essential zlib1g-dev default-mysql-client curl gnupg procps vim git unzip libzip-dev libpq-dev \
   && docker-php-ext-install zip pdo_mysql pdo_pgsql pgsql\
   && pecl install xdebug \
-  && docker-php-ext-enable xdebug
+  && docker-php-ext-enable xdebug \
+  && pecl install redis \
+  && docker-php-ext-enable redis
 
 ENV PHP_IDE_CONFIG 'serverName=php.debug'
 RUN echo "xdebug.mode=debug" >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini

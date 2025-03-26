@@ -13,6 +13,8 @@ class ExceptionHandler implements ExceptionHandlerInterface
 
     public function handle(\Throwable $e): ResponseInterface
     {
+
+        throw $e;
 //        $this->logger->alert($e->getMessage(), ['exception' => $e]);
         return new Response();
         ///generate response

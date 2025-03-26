@@ -7,7 +7,6 @@ use App\Core\Http\ResponseInterface;
 
 class NotFoundErrorMiddleware implements MiddlewareInterface
 {
-
     public function process(RequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
         $response = $handler->handle($request);

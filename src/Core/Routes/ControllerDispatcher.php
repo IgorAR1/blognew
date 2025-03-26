@@ -21,7 +21,7 @@ final class ControllerDispatcher implements ControllerDispatcherInterface
     }
     public function handle(RequestInterface $request): ResponseInterface//?
     {
-        return new Response();
+        return $this->dispatch($request->getAttribute('_controller'), $request->getAttribute('_parameters'));
     }
 
     public function dispatch(mixed $controller, array $parameters)//ResponseInterface

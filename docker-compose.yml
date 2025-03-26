@@ -38,3 +38,9 @@ services:
       MYSQL_DATABASE: blog
       MYSQL_USER: admin
       MYSQL_PASSWORD: admin
+
+  redis:
+    container_name: redis-blog
+    image: redis:7.4
+    ports:
+      - "6379:6379"

@@ -14,4 +14,9 @@ interface RequestInterface
 
     public function getBody();
 
+    public function getAttribute(string $name,mixed $default = null): mixed;
+
+    public function withAttribute(mixed $attribute): static;
+
+    public function getQueryParams();
 }

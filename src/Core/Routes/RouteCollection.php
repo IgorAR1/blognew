@@ -16,15 +16,16 @@ class RouteCollection implements RouteCollectionInterface
         return $this->routes;
     }
 
-    public function addRoute(RouteInterface $route): void
+    public function addRoute(string $method, RouteInterface $route): void
     {
-        $this->routes[] = $route;
+        $this->routes[$method][] = $route;
     }
 
     public function findRoute(RequestInterface $request): RouteInterface
     {
+        $routes = $this->routes[$request->getMethod()] ?? [];
         // TODO: нажно разбивать роуты по методам [GET =>[route],...], ну и с этим учетом оптимизировать поиск
-        foreach ($this->routes as $route) {
+        foreach ($routes as $route) {
             if ($route->matches($request)) {
 
                 return $route;

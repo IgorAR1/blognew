@@ -86,12 +86,16 @@ class Route implements RouteInterface
 
     public function matches(RequestInterface $request): bool
     {
-        return preg_match('#^' . $this->getCompiled() . '$#', $request->getUri());
+        $uriPath = parse_url($request->getUri(), PHP_URL_PATH);
+
+        return preg_match('#^' . $this->getCompiled() . '$#', $uriPath);
     }
 
     public function bindParameters(RequestInterface $request): void
     {
-        preg_match('#^' . $this->getCompiled() . '$#', $request->getUri(), $matches, PREG_UNMATCHED_AS_NULL);
+        $uriPath = parse_url($request->getUri(), PHP_URL_PATH);
+
+        preg_match('#^' . $this->getCompiled() . '$#', $uriPath, $matches, PREG_UNMATCHED_AS_NULL);
 
         $this->parameters = array_filter($matches, 'is_string', ARRAY_FILTER_USE_KEY);
 

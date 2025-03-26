@@ -27,8 +27,12 @@ class RouteDispatcher implements MiddlewareInterface///Это что то тип
     ///Есть ощущение что диспатчер должен роут вызывать o_0
     public function process(RequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
+
         $route = $this->router->findRoute($request);
+
         $route->bindParameters($request);
+
+        $request->withAttribute(['_controller' => $route->getController(),'_parameters' => $route->getParameters()]);
 
         $test = [
             new \App\Core\Http\Middleware\testMiddleware\Middleware1(),

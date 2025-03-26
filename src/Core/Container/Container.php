@@ -49,14 +49,19 @@ class Container implements ContainerInterface
             throw new ContainerException('Cyclic dependency resolved instance is already in container');
         }
 
-        if (array_key_exists($definition, $this->binds)) {
+        if (array_key_exists($definition, $this->binds)) {//TODO change to isset
             //TODO: тут бы подумать еще мб по лучше есть вариант сделать
-            if (is_object($this->binds[$definition])){
-                return $this->binds[$definition];
-            }
-            $definition = $this->binds[$definition];
-        }
+            $concrete = $this->binds[$definition];
 
+            if (is_callable($concrete)){
+                return $concrete();
+            }
+
+            if (is_object($concrete)){
+                return $concrete;
+            }
+            $definition = $concrete;
+        }
 
         $this->notInstantiable($definition);
 
