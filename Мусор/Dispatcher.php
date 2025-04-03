@@ -2,7 +2,7 @@
 
 namespace App\Core\Http\Middleware;
 
-use App\Core\Http\RequestInterface;
+use App\Core\Http\ServerRequestInterface;
 use App\Core\Http\ResponseInterface;
 use LogicException;
 
@@ -16,14 +16,14 @@ class Dispatcher implements MiddlewareInterface, RequestHandlerInterface, Middle
     {
     }
 
-    public function process(RequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
+    public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
-        $this->stack[] = function (RequestInterface $request) use ($handler) { return $handler->handle($request); };;
+        $this->stack[] = function (ServerRequestInterface $request) use ($handler) { return $handler->handle($request); };;
 
         return $this->handle($request);
     }
 
-    public function handle(RequestInterface $request): ResponseInterface
+    public function handle(ServerRequestInterface $request): ResponseInterface
     {
         $resolved = $this->resolve(0);
 //        dump($resolved);
@@ -35,7 +35,7 @@ class Dispatcher implements MiddlewareInterface, RequestHandlerInterface, Middle
 //        dump('Resolving index: ', $index, $this->stack[$index] ?? 'none');
 //        dump($this->stack);
         if (isset($this->stack[$index])) {
-            return new class(function (RequestInterface $request) use ($index) {
+            return new class(function (ServerRequestInterface $request) use ($index) {
                 //Резолвер еще добавить
                 $middleware = $this->stack[$index];
                 if ($middleware instanceof MiddlewareInterface) {
@@ -49,7 +49,7 @@ class Dispatcher implements MiddlewareInterface, RequestHandlerInterface, Middle
                 {
                 }
 
-                public function handle(RequestInterface $request): ResponseInterface
+                public function handle(ServerRequestInterface $request): ResponseInterface
                 {
                     return ($this->callback)($request);
                 }

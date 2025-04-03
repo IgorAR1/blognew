@@ -3,7 +3,7 @@
 namespace App\Core\Routes;
 
 use App\Core\Http\Middleware\MiddlewareInterface;
-use App\Core\Http\RequestInterface;
+use Psr\Http\Message\ServerRequestInterface;
 
 class Route implements RouteInterface
 {
@@ -19,30 +19,15 @@ class Route implements RouteInterface
 
     public function __construct(private string $method,
                                 private string $uri,
-                                private mixed $controller,)
+                                private mixed  $controller)
 //                                private Dispatcher $dispatcher)
     {
         $this->compileRoute();//Конечно славно делать такие вещи лениво
     }
 
-    public function run(RequestInterface $request)//ResponseInterface
-    {
-//        $this->dispatcher->handle($request);
-//       return $this->controllerDispatcher()->dispatch($this->controller, $this->action, $this->parameters);
-    }
-
-//    private function controllerDispatcher(): ControllerDispatcherInterface
-//    {
-//        return $this->;
-//    }
     public function getController(): mixed
     {
         return $this->controller;
-    }
-
-    public function getAction(): string
-    {
-        return $this->action;
     }
 
     public function getParameters(): array
@@ -50,7 +35,7 @@ class Route implements RouteInterface
         return $this->parameters;
     }
 
-    public function getPath(): string
+    public function getUri(): string
     {
         return $this->uri;
     }
@@ -67,9 +52,16 @@ class Route implements RouteInterface
         return $this;
     }
 
-    public function setMiddleware(MiddlewareInterface $middleware): static
+    public function setMiddleware(mixed $middleware): static
     {
         $this->middleware[] = $middleware;
+
+        return $this;
+    }
+
+    public function setMiddlewares(array $middlewares): static
+    {
+        $this->middleware = array_merge($this->middleware, $middlewares);
 
         return $this;
     }
@@ -84,14 +76,14 @@ class Route implements RouteInterface
         $this->compiled = preg_replace('/\{(\w+)\}/', '(?P<$1>[^/]+)', $this->uri);;
     }
 
-    public function matches(RequestInterface $request): bool
+    public function matches(ServerRequestInterface $request): bool
     {
         $uriPath = parse_url($request->getUri(), PHP_URL_PATH);
 
         return preg_match('#^' . $this->getCompiled() . '$#', $uriPath);
     }
 
-    public function bindParameters(RequestInterface $request): void
+    public function bindParameters(ServerRequestInterface $request): void
     {
         $uriPath = parse_url($request->getUri(), PHP_URL_PATH);
 

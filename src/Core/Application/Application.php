@@ -12,18 +12,19 @@ use App\Core\Event\ListenerProviderComposite;
 use App\Core\Http\Exception\ExceptionHandler;
 use App\Core\Http\Middleware\MiddlewareDispatcher;
 use App\Core\Http\Middleware\NotFoundErrorMiddleware;
-use App\Core\Http\RequestInterface;
-use App\Core\Http\ResponseInterface;
 use App\Core\Logger\Handlers\LogHandlerInterface;
 use App\Core\Logger\Handlers\StreamLogHandler;
 use App\Core\Logger\Logger;
 use App\Core\Routes\ControllerDispatcher;
 use App\Core\Routes\Router;
+use GuzzleHttp\Psr7\ServerRequest;
 use Latte\Engine;
 use Latte\Loaders\FileLoader;
 use Psr\Cache\CacheItemPoolInterface;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\EventDispatcher\ListenerProviderInterface;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
 use Psr\Log\LoggerInterface;
 use Redis;
 
@@ -54,7 +55,9 @@ class Application extends Container
     {
         $this->bind(\App\Core\Factories\RouteFactoryInterface::class, \App\Core\Factories\RouteFactory::class);
         $this->bind(\App\Core\Routes\RouteCollectionInterface::class, \App\Core\Routes\RouteCollection::class);
-        $this->bind(\App\Core\Http\RequestInterface::class, \App\Core\Http\Request::class);
+        $this->bind(ServerRequestInterface::class, function (): ServerRequestInterface {
+                return ServerRequest::fromGlobals();
+        });
         $this->bind(\App\Core\Routes\ControllerDispatcherInterface::class, \App\Core\Routes\ControllerDispatcher::class);
         $this->bind(\Psr\Container\ContainerInterface::class, $this);//А вот вам и синглтон локатор
         $this->bind(ListenerProviderInterface::class, ListenerProviderComposite::class);
@@ -69,8 +72,8 @@ class Application extends Container
         });
         $this->bind(Engine::class, function (): Engine {
             $latte = new Engine();
-            $latte->setTempDirectory(getcwd() . '/cache'); // Папка для кэша
-            $latte->setLoader(new FileLoader('/var/www/blog/templates')); // Папка с шаблонами
+            $latte->setTempDirectory(getcwd() . '/cache');
+            $latte->setLoader(new FileLoader('/var/www/blog/templates'));
             return $latte;
         });
     }
@@ -80,33 +83,24 @@ class Application extends Container
         $router->get('/', [HomeController::class, 'index']);
         $router->get('/{id}', [HomeController::class, 'show']);
         $router->post('/{id}', [HomeController::class, 'store']);
-//        $router->get('/{id}', function ($id) {
-//            dd('ну ляпота');
-//        });
     }
 
-    public function handleRequest(RequestInterface $request): ResponseInterface
+    public function handleRequest(ServerRequestInterface $request): void
     {
         try {
             $this->configureContainer();
             $router = $this->make(Router::class);
             $this->configureRoutes($router);
 
-
-//            $cache = new ArrayCache();
             $cache = $this->make(CacheItemPoolInterface::class);
-
-            $item = $cache->getItem('hui6')->expiresAt(new \DateTime('2025-03-21 10:00:00'))->set('huitenb3');
-
-            $cache->save($item);
 
             $this->setGlobalMiddlewares([
                 new NotFoundErrorMiddleware(),
             ]);
 
             $controllerDispatcher = $this->make(ControllerDispatcher::class);
-            $routeRunner = new \App\Core\Routes\RouteDispatcher($router, new MiddlewareDispatcher());
-            $dispatcher = new MiddlewareDispatcher();
+            $routeRunner = new \App\Core\Routes\RouteDispatcher($router, new MiddlewareDispatcher($this));
+            $dispatcher = new MiddlewareDispatcher($this);
             $dispatcher->setMiddlewares($this->middlewares);
             $dispatcher->addMiddleware([
                     $routeRunner,
@@ -114,16 +108,19 @@ class Application extends Container
                 ]
             );
 
-            return $dispatcher->handle($request);
-        } catch (\Exception $e) {
+            $response =  $dispatcher->handle($request);
 
-            return $this->handleException($e);//TODO: setCustomHandler///Вообще через ивент все сделать
+            $this->sendResponse($response);
+
+//            return $response;
+        } catch (\Exception $e) {
+            $this->handleException($e);//TODO: setCustomHandler///Вообще через ивент все сделать
         }
     }
 
-    private function handleException(\Throwable $e): ResponseInterface
+    private function handleException(\Throwable $e): void
     {
-        return (new ExceptionHandler())->handle($e);
+        (new ExceptionHandler())->handle($e);
     }
 
     private function prepareConfig(): void
@@ -142,6 +139,19 @@ class Application extends Container
         }
 
         $this->config = new Config($parameters);
+    }
+
+    private function sendResponse(ResponseInterface $response): void
+    {
+        http_response_code($response->getStatusCode());
+
+        foreach ($response->getHeaders() as $name => $values) {
+            foreach ($values as $value) {
+                header(sprintf('%s: %s', $name, $value));
+            }
+        }
+
+        echo $response->getBody()->getContents();
     }
 
     public function config(string $key = ''): array|string

@@ -2,19 +2,21 @@
 
 namespace App\Core\Http\Middleware;
 
-use App\Core\Http\RequestInterface;
-use App\Core\Http\Response;
-use App\Core\Http\ResponseInterface;
+
+use Psr\Container\ContainerInterface;
+use Psr\Http\Message\ResponseInterface;
 use LogicException;
+use Psr\Http\Message\ServerRequestInterface;
 
 class MiddlewareDispatcher implements MiddlewareDispatcherInterface
 {
-    public function __construct(protected array $stack = [])
-    {}
-
-    public function process(RequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
+    public function __construct(readonly ContainerInterface $container, protected array $stack = [])//Я не знаю насколько хорошей идеей является передача куда либо контейнера, иным вариантом ленивого резолва - передача фабричного замыкания, но читаемость резко ухудшиться
     {
-        $this->stack[] = function (RequestInterface $request) use ($handler) {
+    }
+
+    public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
+    {
+        $this->stack[] = function (ServerRequestInterface $request) use ($handler) {
             return $handler->handle($request);
         };
 
@@ -25,7 +27,7 @@ class MiddlewareDispatcher implements MiddlewareDispatcherInterface
         return $response;
     }
 
-    public function handle(RequestInterface $request): ResponseInterface
+    public function handle(ServerRequestInterface $request): ResponseInterface
     {
         $resolved = $this->resolve(0);
 
@@ -35,8 +37,14 @@ class MiddlewareDispatcher implements MiddlewareDispatcherInterface
     private function resolve(int $index): RequestHandlerInterface
     {
         if (isset($this->stack[$index])) {
-            return new class(function (RequestInterface $request) use ($index) {
+            return new class(function (ServerRequestInterface $request) use ($index) {
                 $middleware = $this->stack[$index];
+
+                if (is_string($middleware)) {
+                    if ($this->container->has($middleware)) {
+                        $middleware = $this->container->make($middleware);
+                    }
+                }
                 if ($middleware instanceof MiddlewareInterface) {
                     return $middleware->process($request, $this->resolve($index + 1));
                 }
@@ -46,12 +54,16 @@ class MiddlewareDispatcher implements MiddlewareDispatcherInterface
 
                 throw new LogicException("Unsupported middleware type at index $index");///TODO: гавно пееделать
             }) implements RequestHandlerInterface {
-                public function __construct(readonly \Closure $callback) {}
-                public function handle(RequestInterface $request): ResponseInterface
+                public function __construct(readonly \Closure $callback)
+                {
+                }
+
+                public function handle(ServerRequestInterface $request): ResponseInterface
                 {
                     return ($this->callback)($request);
                 }
-                public function __invoke(RequestInterface $request)
+
+                public function __invoke(ServerRequestInterface $request)
                 {
                     return ($this->callback)($request);
                 }
@@ -59,7 +71,7 @@ class MiddlewareDispatcher implements MiddlewareDispatcherInterface
         }
 
         return new class implements RequestHandlerInterface {///Если последний элемент цепи не дает респонс - исключение потому что блять если выходишь за массив он нулл возвращает
-            public function handle(RequestInterface $request): ResponseInterface
+            public function handle(ServerRequestInterface $request): ResponseInterface
             {
                 throw new LogicException("unresolved request: middleware stack exhausted with no result");
             }

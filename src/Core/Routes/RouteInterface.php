@@ -2,23 +2,27 @@
 
 namespace App\Core\Routes;
 
-use App\Core\Http\RequestInterface;
+
+use Psr\Http\Message\ServerRequestInterface;
 
 interface RouteInterface
 {
-    public function run(RequestInterface $request);//ResponseInterface
+    public function getMethod(): string;
 
-    public function getCompiled();
+    public function getUri(): string;
+
+    public function getCompiled(): string;
 
     public function getController(): mixed;
 
     public function getMiddleware(): array;
 
-    public function getAction(): string;
+    public function setController(string $controller): static;
+    public function setMiddleware(mixed $middleware): static;
 
     public function getParameters(): array;
 
-    public function matches(RequestInterface $request);
+    public function matches(ServerRequestInterface $request): bool;
 
-    public function bindParameters(RequestInterface $request): void;
+    public function bindParameters(ServerRequestInterface $request): void;
 }

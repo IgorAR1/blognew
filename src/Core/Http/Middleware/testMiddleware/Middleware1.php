@@ -4,12 +4,12 @@ namespace App\Core\Http\Middleware\testMiddleware;
 
 use App\Core\Http\Middleware\MiddlewareInterface;
 use App\Core\Http\Middleware\RequestHandlerInterface;
-use App\Core\Http\RequestInterface;
-use App\Core\Http\ResponseInterface;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
 
 class Middleware1 implements MiddlewareInterface
 {
-    public function process(RequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
+    public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
         dump('1');
         return $handler->handle($request);
