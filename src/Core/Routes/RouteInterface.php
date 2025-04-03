@@ -18,7 +18,7 @@ interface RouteInterface
     public function getMiddleware(): array;
 
     public function setController(string $controller): static;
-    public function setMiddleware(string $middleware): static;
+    public function setMiddleware(mixed $middleware): static;
 
     public function getParameters(): array;
 

@@ -45,6 +45,7 @@ class Router
 
         return $route;
     }
+
     public function group(array $parameters, \Closure $callback): void
     {
         $this->groupStack[] = $parameters;
@@ -61,22 +62,22 @@ class Router
 
     public function get(string $uri, mixed $controller): RouteInterface
     {
-        return $this->addRoute('GET', $uri, $controller);
+        $this->addRoute('GET', $uri, $controller);
     }
 
-    public function post(string $uri, mixed $controller): RouteInterface
+    public function post(string $uri, mixed $controller): void
     {
-        return $this->addRoute('POST', $uri, $controller);
+        $this->addRoute('POST', $uri, $controller);
     }
 
-    public function patch(string $uri, mixed $controller): RouteInterface
+    public function patch(string $uri, mixed $controller): void
     {
-        return $this->addRoute('PATCH', $uri, $controller);
+        $this->addRoute('PATCH', $uri, $controller);
     }
 
-    public function delete(string $uri, mixed $controller): RouteInterface
+    public function delete(string $uri, mixed $controller): void
     {
-        return $this->addRoute('DELETE', $uri, $controller);
+        $this->addRoute('DELETE', $uri, $controller);
     }
 
     private function prefix(string $uri, mixed $prefix)

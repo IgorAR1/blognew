@@ -52,20 +52,16 @@ class Route implements RouteInterface
         return $this;
     }
 
-    public function setMiddleware(string $middleware): static
+    public function setMiddleware(mixed $middleware): static
     {
         $this->middleware[] = $middleware;
 
         return $this;
     }
 
-    public function setMiddlewares(array|string $middlewares): static
+    public function setMiddlewares(array $middlewares): static
     {
-        if (is_array($middlewares)) {
-            $this->middleware = array_merge($this->middleware, $middlewares);
-        }else{
-            $this->middleware[] = $middlewares;
-        }
+        $this->middleware = array_merge($this->middleware, $middlewares);
 
         return $this;
     }
