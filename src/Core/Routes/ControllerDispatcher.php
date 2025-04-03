@@ -5,23 +5,29 @@ namespace App\Core\Routes;
 use App\Core\Container\Exceptions\NotFoundContainerException;
 use App\Core\Http\Middleware\MiddlewareInterface;
 use App\Core\Http\Middleware\RequestHandlerInterface;
-use App\Core\Http\RequestInterface;
-use App\Core\Http\Response;
-use App\Core\Http\ResponseInterface;
+use InvalidArgumentException;
 use Psr\Container\ContainerInterface;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
 
 final class ControllerDispatcher implements ControllerDispatcherInterface
 {
     public function __construct(readonly ContainerInterface $container)
     {
     }
-    public function process(RequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
+
+    public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
         return $this->handle($request);
     }
-    public function handle(RequestInterface $request): ResponseInterface//?
+    public function handle(ServerRequestInterface $request): ResponseInterface//?
     {
-        return $this->dispatch($request->getAttribute('_controller'), $request->getAttribute('_parameters'));
+        $controller = $request->getAttribute('_controller');
+
+        $parameters = $request->getAttribute('_parameters');
+        $parameters['request'] = $request;
+
+        return $this->dispatch($controller, $parameters);
     }
 
     public function dispatch(mixed $controller, array $parameters)//ResponseInterface
@@ -43,17 +49,17 @@ final class ControllerDispatcher implements ControllerDispatcherInterface
             try {
                 $instance = $this->container->make($controller[0]);
             } catch (NotFoundContainerException $e) {
-                throw new RoutingException("Controller {$controller[0]} does not exist.");
+                throw new InvalidArgumentException("Controller {$controller[0]} does not exist.");
             }
 
             if (is_callable($instance)) {
-                return [$instance, '_invoke'];
+                return [$instance, '__invoke'];
             }
 
             return [$instance, $controller[1]];
         }
         //TODO: ошибку поменять
-        throw new RoutingException("Controller {$controller} is not a callable.");
+        throw new InvalidArgumentException("Controller {$controller} is not a callable.");
 //        return $controller;
     }
 

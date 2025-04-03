@@ -2,12 +2,13 @@
 
 namespace App\Core\Http\Middleware;
 
-use App\Core\Http\RequestInterface;
-use App\Core\Http\ResponseInterface;
+
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
 
 class NotFoundErrorMiddleware implements MiddlewareInterface
 {
-    public function process(RequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
+    public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
         $response = $handler->handle($request);
 

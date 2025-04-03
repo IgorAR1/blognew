@@ -2,7 +2,8 @@
 
 namespace App\Core\Routes;
 
-use App\Core\Http\RequestInterface;
+
+use Psr\Http\Message\ServerRequestInterface;
 
 interface RouteCollectionInterface
 {
@@ -10,5 +11,5 @@ interface RouteCollectionInterface
 
     public function addRoute(string $method, RouteInterface $route): void;
 
-    public function findRoute(RequestInterface $request): RouteInterface;
+    public function findRoute(ServerRequestInterface $request): RouteInterface;
 }

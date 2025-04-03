@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Core\Http;
+namespace App\Core\Http\Middleware;
 
-class Request implements RequestInterface
+class Request
 {
     private string $controller;
     private mixed $attribute;

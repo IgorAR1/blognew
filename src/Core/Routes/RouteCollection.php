@@ -2,7 +2,7 @@
 
 namespace App\Core\Routes;
 
-use App\Core\Http\RequestInterface;
+use Psr\Http\Message\ServerRequestInterface;
 
 class RouteCollection implements RouteCollectionInterface
 {
@@ -21,7 +21,7 @@ class RouteCollection implements RouteCollectionInterface
         $this->routes[$method][] = $route;
     }
 
-    public function findRoute(RequestInterface $request): RouteInterface
+    public function findRoute(ServerRequestInterface $request): RouteInterface
     {
         $routes = $this->routes[$request->getMethod()] ?? [];
         // TODO: нажно разбивать роуты по методам [GET =>[route],...], ну и с этим учетом оптимизировать поиск
