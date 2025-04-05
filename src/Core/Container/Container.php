@@ -4,6 +4,7 @@ namespace App\Core\Container;
 
 use App\Core\Container\Exceptions\ContainerException;
 use App\Core\Container\Exceptions\NotFoundContainerException;
+use App\Core\Container\Exceptions\ArgumentCountError;
 use Psr\Container\ContainerInterface;
 use ReflectionClass;
 use ReflectionParameter;
@@ -37,62 +38,71 @@ class Container implements ContainerInterface
         return $instance;
     }
 
-    public function makeWith(string $definition, array $parameters): object
+    public function makeWith(string $abstract, array $parameters): object
     {
-        return $this->make($definition, $parameters);
+        return $this->make($abstract, $parameters);
     }
 
-    public function make(string $definition, array $parameters = []): object
+    //TODO: definition mb abstract?
+    public function make(string $abstract, array $parameters = []): object
     {
-
-        if (isset($this->inProgress[$definition])) {
+        if (isset($this->inProgress[$abstract])) {
             throw new ContainerException('Cyclic dependency resolved instance is already in container');
         }
 
-        if (array_key_exists($definition, $this->binds)) {//TODO change to isset
-            //TODO: тут бы подумать еще мб по лучше есть вариант сделать
-            $concrete = $this->binds[$definition];
+//        $this->resolveAbstract($abstract);???
 
-            if (is_callable($concrete)){
-                return $concrete();
+        if (isset($this->binds[$abstract])) {
+            $concrete = $this->binds[$abstract];
+
+            if (is_callable($concrete)) {
+                $concrete = $concrete();
             }
 
-            if (is_object($concrete)){
+            //TODO: если будет поддержка alies то тут кончено по другому
+            if (is_object($concrete)) {
+//                if (is_string($abstract)) {
+//                    return $concrete;
+//                }
+                if (!$concrete instanceof $abstract) {//Мб в отдельную функцию
+                    throw new ContainerException('Concrete must be instance of ' . $abstract);
+                }
+
                 return $concrete;
             }
-            $definition = $concrete;
+        } else {
+            $concrete = $abstract;
         }
 
-        $this->notInstantiable($definition);
+        $this->throwNotInstantiable($concrete);
 
-        $this->markAsInProgress($definition);
+        $this->markAsInProgress($concrete);
         try {
-            $resolvedDependencies = $this->resolveDependencies($definition, $parameters);
+            $resolvedDependencies = $this->resolveDependencies($concrete, $parameters);
 
-            $instance = new $definition(...$resolvedDependencies);
+            $instance = new $concrete(...$resolvedDependencies);
 
-            $this->unmarkAsInProgress($definition);
+            if (!$instance instanceof $abstract) {
+                throw new ContainerException('Concrete must be instance of ' . $abstract);
+            }
+
+            $this->unmarkAsInProgress($concrete);
+
+            return $instance;
         } catch (\Throwable $exception) {
-            $this->unmarkAsInProgress($definition);
+            $this->unmarkAsInProgress($concrete);
+
             throw $exception;
         }
-
-        return $instance;
     }
 
     private function resolveDependencies(string $definition, $parameters = []): array
     {
         $reflector = new ReflectionClass($definition);
-//        try {
-//            $constructor = new \ReflectionMethod($definition, '__construct');
-//        } catch (\ReflectionException $e) {
-//            return [];
-//        }
 
         $dependencies = [];
 
         $constructor = $reflector->getConstructor();
-
         if ($constructor) {
             if (!$constructor->isPublic()) {
                 throw new ContainerException("Constructor of {$definition} must be a public}");
@@ -132,14 +142,16 @@ class Container implements ContainerInterface
             }
 
             if (!$methodParameter->hasType()) {
-                throw new \ArgumentCountError("Missing required parameter {$parameterName} in {$definition}");
+                throw new ArgumentCountError("Missing required parameter {$parameterName} in {$definition}");
             }
 
             $parameterTypeName = $methodParameter->getType()->getName();
 
-            //TODO: isPrimitive() если сюда приде абстракция - он выкинет эту ошибку - а мне надо is not instantiable ofc
-            if (!$this->isInstantiable($parameterTypeName)) {
-                throw new \ArgumentCountError("Missing required parameter {$parameterName} of type {$parameterTypeName} in {$definition}");
+//            if (!$this->isInstantiable($parameterTypeName)) {
+//                throw new ArgumentCountError("Missing required parameter {$parameterName} of type {$parameterTypeName} in {$definition}");
+//            }
+            if ($this->isPrimitive($parameterTypeName)) {//Нужно точно знать примитив тут или нет, чтобы корректную ошибку выкинуть
+                throw new ArgumentCountError("Missing required parameter {$parameterName} of type {$parameterTypeName} in {$definition}");
             }
 
             $resolvedParameters[] = $this->make($parameterTypeName);
@@ -153,7 +165,7 @@ class Container implements ContainerInterface
         $this->binds[$abstract] = $concrete;
     }
 
-    private function notInstantiable(string $definition): void
+    private function throwNotInstantiable(string $definition): void
     {
         if (!$this->isInstantiable($definition)) {
             throw new NotFoundContainerException($definition . ' is not instantiable');
@@ -161,10 +173,13 @@ class Container implements ContainerInterface
     }
 
 /////Фантастическое говнище - переделать
+/// ///вообще можно рекурсивно пройти по всему графу
     public function isInstantiable(string $definition): bool
     {
-        if (array_key_exists($definition, $this->binds)) {
-            if (is_object($this->binds[$definition]) || class_exists($this->binds[$definition])) {
+        if (isset($this->binds[$definition])) {
+            $definition = $this->binds[$definition];
+
+            if (is_object($definition)) {///callable это прям беда
                 return true;
             }
         }
@@ -177,6 +192,15 @@ class Container implements ContainerInterface
         }
 
         return false;
+    }
+
+    public function isPrimitive(string $definition): bool
+    {
+        if (!class_exists($definition) && !interface_exists($definition)) {
+            return false;
+        }
+
+        return true;
     }
 
     private function markAsInProgress(string $definition): void
