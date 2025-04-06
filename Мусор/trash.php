@@ -1,8 +1,17 @@
 <?php
 
+namespace App\Core\Http\Middleware;
+
+class trash
+{
+
+}
+
+
 namespace App\Core\Container;
 
 use App\Core\Container\Exceptions\ContainerException;
+use App\Core\Container\Exceptions\NotFoundContainerException;
 use App\Core\Container\Exceptions\ArgumentCountError;
 use Psr\Container\ContainerInterface;
 use ReflectionClass;
@@ -53,11 +62,8 @@ class Container implements ContainerInterface
         if (isset($this->binds[$abstract])) {
             $concrete = $this->binds[$abstract];
 
-            if (is_callable($concrete)) {
+            if (is_callable($concrete)) {/// Все сломается если в замыкании будет callable
                 $concrete = $concrete();
-                if (!is_object($concrete)) {
-                    throw new ContainerException("Factory must return an object");
-                }
             }
 
             //TODO: если будет поддержка alies то тут кончено по другому
@@ -167,8 +173,19 @@ class Container implements ContainerInterface
         }
     }
 
-    private function isInstantiable(string $definition): bool
+    public function isInstantiable(string $definition): bool
     {
+//        if (isset($this->binds[$definition])) {
+//            $definition = $this->binds[$definition];
+//
+//            if (is_object($definition)) {
+//                return true;
+//            }
+//
+//            if (!is_string($definition)) {
+//                return false;
+//            }
+//        }
         if (class_exists($definition)) {
             $reflector = new ReflectionClass($definition);
             return $reflector->isInstantiable();
@@ -177,7 +194,7 @@ class Container implements ContainerInterface
         return false;
     }
 
-    private function isPrimitive(string $definition): bool
+    public function isPrimitive(string $definition): bool
     {
         if (!class_exists($definition) && !interface_exists($definition)) {
             return false;
