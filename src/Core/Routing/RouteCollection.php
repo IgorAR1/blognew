@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Core\Routes;
+namespace App\Core\Routing;
 
 use Psr\Http\Message\ServerRequestInterface;
 
@@ -24,10 +24,12 @@ class RouteCollection implements RouteCollectionInterface
     public function findRoute(ServerRequestInterface $request): RouteInterface
     {
         $routes = $this->routes[$request->getMethod()] ?? [];
-        // TODO: нажно разбивать роуты по методам [GET =>[route],...], ну и с этим учетом оптимизировать поиск
+
+        /**
+         * @var $route RouteInterface
+         */
         foreach ($routes as $route) {
             if ($route->matches($request)) {
-
                 return $route;
             }
         }

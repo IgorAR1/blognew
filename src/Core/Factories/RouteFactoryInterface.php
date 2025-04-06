@@ -2,7 +2,7 @@
 
 namespace App\Core\Factories;
 
-use App\Core\Routes\RouteInterface;
+use App\Core\Routing\RouteInterface;
 
 interface RouteFactoryInterface
 {

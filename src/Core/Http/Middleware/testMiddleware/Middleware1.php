@@ -11,7 +11,6 @@ class Middleware1 implements MiddlewareInterface
 {
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
-        dump('1');
         return $handler->handle($request);
     }
 }

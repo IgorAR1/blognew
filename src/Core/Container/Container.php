@@ -4,6 +4,7 @@ namespace App\Core\Container;
 
 use App\Core\Container\Exceptions\ContainerException;
 use App\Core\Container\Exceptions\ArgumentCountError;
+use App\Core\Container\Exceptions\NotFoundContainerException;
 use Psr\Container\ContainerInterface;
 use ReflectionClass;
 use ReflectionParameter;
@@ -19,7 +20,7 @@ class Container implements ContainerInterface
 
     public function has(string $id): bool
     {
-        if (array_key_exists($id, $this->resolvedInstances) || $this->isInstantiable($id)) {
+        if (isset($this->resolvedInstances[$id]) || $this->isInstantiable($id)) {
             return true;
         }
 
@@ -28,7 +29,7 @@ class Container implements ContainerInterface
 
     public function get(string $id): object
     {
-        if (array_key_exists($id, $this->resolvedInstances)) {
+        if (isset($this->resolvedInstances[$id])) {
             return $this->resolvedInstances[$id];
         }
         $instance = $this->make($id);
@@ -59,9 +60,7 @@ class Container implements ContainerInterface
                     throw new ContainerException("Factory must return an object");
                 }
             }
-
-            //TODO: если будет поддержка alies то тут кончено по другому
-
+            //TODO: если будет поддержка alies то тут кончено по другому *никакой поддержки алиасов
             if (is_object($concrete)) {
                 if (!$concrete instanceof $abstract) {//Мб в отдельную функцию
                     throw new ContainerException('Concrete must be instance of ' . $abstract);
@@ -161,9 +160,9 @@ class Container implements ContainerInterface
     private function throwNotInstantiable(mixed $concrete): void
     {
         if (!is_string($concrete)) {
-            throw new ContainerException("Concrete type of {gettype($concrete)} can not be instantiated");
+            throw new NotFoundContainerException("Concrete type of ". gettype($concrete) ." can not be instantiated");
         } elseif (!$this->isInstantiable($concrete)) {
-            throw new ContainerException("{$concrete} is not instantiable");
+            throw new NotFoundContainerException("{$concrete} is not instantiable");
         }
     }
 
@@ -180,10 +179,10 @@ class Container implements ContainerInterface
     private function isPrimitive(string $definition): bool
     {
         if (!class_exists($definition) && !interface_exists($definition)) {
-            return false;
+            return true;
         }
 
-        return true;
+        return false;
     }
 
     private function markAsInProgress(string $definition): void

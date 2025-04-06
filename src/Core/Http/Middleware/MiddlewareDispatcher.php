@@ -41,9 +41,7 @@ class MiddlewareDispatcher implements MiddlewareDispatcherInterface
                 $middleware = $this->stack[$index];
 
                 if (is_string($middleware)) {
-                    if ($this->container->has($middleware)) {
-                        $middleware = $this->container->make($middleware);
-                    }
+                    $middleware = $this->container->make($middleware);
                 }
                 if ($middleware instanceof MiddlewareInterface) {
                     return $middleware->process($request, $this->resolve($index + 1));
@@ -73,7 +71,7 @@ class MiddlewareDispatcher implements MiddlewareDispatcherInterface
         return new class implements RequestHandlerInterface {///Если последний элемент цепи не дает респонс - исключение потому что блять если выходишь за массив он нулл возвращает
             public function handle(ServerRequestInterface $request): ResponseInterface
             {
-                throw new LogicException("unresolved request: middleware stack exhausted with no result");
+                throw new LogicException("Unresolved request: middleware stack exhausted with no result");
             }
         };
     }

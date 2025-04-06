@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Core\Routes;
+namespace App\Core\Routing;
 
 use App\Core\Http\Middleware\MiddlewareInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -13,16 +13,15 @@ class Route implements RouteInterface
     /**
      * @var array<MiddlewareInterface>
      */
-    private array $middleware;
+    private array $middleware = [];
 
     protected string $compiled;
 
     public function __construct(private string $method,
                                 private string $uri,
                                 private mixed  $controller)
-//                                private Dispatcher $dispatcher)
     {
-        $this->compileRoute();//Конечно славно делать такие вещи лениво
+        $this->compileRoute();
     }
 
     public function getController(): mixed
@@ -52,7 +51,7 @@ class Route implements RouteInterface
         return $this;
     }
 
-    public function setMiddleware(mixed $middleware): static
+    public function addMiddleware(mixed $middleware): static
     {
         $this->middleware[] = $middleware;
 
@@ -78,7 +77,7 @@ class Route implements RouteInterface
 
     public function matches(ServerRequestInterface $request): bool
     {
-        $uriPath = parse_url($request->getUri(), PHP_URL_PATH);
+        $uriPath = trim(parse_url($request->getUri(), PHP_URL_PATH),'/');
 
         return preg_match('#^' . $this->getCompiled() . '$#', $uriPath);
     }

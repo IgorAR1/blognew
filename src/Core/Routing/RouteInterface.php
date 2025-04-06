@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Core\Routes;
+namespace App\Core\Routing;
 
 
 use Psr\Http\Message\ServerRequestInterface;
@@ -18,7 +18,7 @@ interface RouteInterface
     public function getMiddleware(): array;
 
     public function setController(string $controller): static;
-    public function setMiddleware(mixed $middleware): static;
+    public function addMiddleware(mixed $middleware): static;
 
     public function getParameters(): array;
 

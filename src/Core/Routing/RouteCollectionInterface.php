@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Core\Routes;
+namespace App\Core\Routing;
 
 
 use Psr\Http\Message\ServerRequestInterface;

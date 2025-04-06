@@ -11,7 +11,6 @@ class Middleware2 implements MiddlewareInterface
 {
     public function process(\Psr\Http\Message\ServerRequestInterface $request, RequestHandlerInterface $handler): \Psr\Http\Message\ResponseInterface
     {
-        dump('1');
         return $handler->handle($request);
     }
 }

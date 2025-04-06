@@ -1,13 +1,13 @@
 <?php
 
-namespace App\Core\Routes;
+namespace App\Core\Routing;
 
 use App\Core\Factories\RouteFactoryInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
 class Router
 {
-    protected array $groupStack;
+    protected array $groupStack = [];
 
     public function __construct(readonly RouteFactoryInterface         $routeFactory,
                                 readonly RouteCollectionInterface       $routeCollection)
@@ -25,22 +25,19 @@ class Router
     }
     public function addRoute(string $method, string $uri, mixed $controller): RouteInterface
     {
-        $lastGroup = [];
+        $group = $this->groupStack;
 
-        if (!empty($this->groupStack)) {
-            $lastGroup = end($this->groupStack);
-        }
-
-        if (isset($parameters['prefix'])) {
-            $uri = $this->prefix($uri, $lastGroup['prefix']);
+        if (isset($group['prefix'])) {
+            foreach (array_reverse($group['prefix']) as $prefix) {
+                $uri = $this->prefix($uri, $prefix);
+            }
         }
 
         $route = $this->create($method, $uri, $controller);
 
-        if (isset($lastGroup['middleware'])) {
-            $route->setMiddlewares($lastGroup['middleware']);
+        if (isset($group['middleware'])) {
+            $route->setMiddlewares($group['middleware']);
         }
-
         $this->routeCollection->addRoute($method, $route);
 
         return $route;
@@ -48,9 +45,10 @@ class Router
 
     public function group(array $parameters, \Closure $callback): void
     {
-        $this->groupStack[] = $parameters;
+//        $this->groupStack[] = $parameters;
+        $this->groupStack = array_merge_recursive($this->groupStack, $parameters);
 
-        $callback();
+        $callback($this);
 
         array_pop($this->groupStack);
     }
@@ -62,26 +60,31 @@ class Router
 
     public function get(string $uri, mixed $controller): RouteInterface
     {
-        $this->addRoute('GET', $uri, $controller);
+        return $this->addRoute('GET', $uri, $controller);
     }
 
-    public function post(string $uri, mixed $controller): void
+    public function post(string $uri, mixed $controller): RouteInterface
     {
-        $this->addRoute('POST', $uri, $controller);
+        return $this->addRoute('POST', $uri, $controller);
     }
 
-    public function patch(string $uri, mixed $controller): void
+    public function patch(string $uri, mixed $controller): RouteInterface
     {
-        $this->addRoute('PATCH', $uri, $controller);
+        return $this->addRoute('PATCH', $uri, $controller);
     }
 
-    public function delete(string $uri, mixed $controller): void
+    public function put(string $uri, mixed $controller): RouteInterface
     {
-        $this->addRoute('DELETE', $uri, $controller);
+        return $this->addRoute('PUT', $uri, $controller);
     }
 
-    private function prefix(string $uri, mixed $prefix)
+    public function delete(string $uri, mixed $controller): RouteInterface
     {
+        return $this->addRoute('DELETE', $uri, $controller);
+    }
 
+    private function prefix(string $uri, mixed $prefix): string
+    {
+        return trim(trim($prefix, '/').'/'.trim($uri, '/'), '/') ?: '/';
     }
 }

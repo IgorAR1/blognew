@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Core\Routes;
+namespace App\Core\Routing;
 
 use App\Core\Container\Exceptions\NotFoundContainerException;
 use App\Core\Http\Middleware\MiddlewareInterface;
@@ -9,6 +9,7 @@ use InvalidArgumentException;
 use Psr\Container\ContainerInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use TypeError;
 
 final class ControllerDispatcher implements ControllerDispatcherInterface
 {
@@ -20,6 +21,7 @@ final class ControllerDispatcher implements ControllerDispatcherInterface
     {
         return $this->handle($request);
     }
+
     public function handle(ServerRequestInterface $request): ResponseInterface//?
     {
         $controller = $request->getAttribute('_controller');
@@ -30,43 +32,55 @@ final class ControllerDispatcher implements ControllerDispatcherInterface
         return $this->dispatch($controller, $parameters);
     }
 
-    public function dispatch(mixed $controller, array $parameters)//ResponseInterface
+    public function dispatch(mixed $controller, array $parameters): ResponseInterface
     {
         $controller = $this->resolveController($controller);
 
         $parameters = $this->resolveParameters($controller, $parameters);
 
+
         return $this->runController($controller, $parameters);
+
     }
 
     private function resolveController(mixed $controller): callable
     {
-        if ($controller instanceof \Closure) {
+//        if ($controller instanceof \Closure) {//Зачем я это сделал
+//            return $controller;
+//        }
+
+        if (is_callable($controller)) {
             return $controller;
         }
 
         if (is_array($controller)) {
+            $definition = $controller[0];
+
             try {
-                $instance = $this->container->make($controller[0]);
-            } catch (NotFoundContainerException $e) {
-                throw new InvalidArgumentException("Controller {$controller[0]} does not exist.");
+                $instance = $this->container->make($definition);
+            } catch (NotFoundContainerException $e) {//????
+                throw new NotFoundContainerException("Controller {$definition} does not exist.");
             }
 
             if (is_callable($instance)) {
                 return [$instance, '__invoke'];
             }
 
-            return [$instance, $controller[1]];
+            $method = $controller[1];
+            if (!method_exists($instance, $method)) {
+                throw new \BadMethodCallException("Controller {$definition} does not have method {$method}.");
+            }
+
+            return [$instance, $method];
         }
         //TODO: ошибку поменять
         throw new InvalidArgumentException("Controller {$controller} is not a callable.");
-//        return $controller;
     }
 
     //TODO: конечно этот резолв по любому должен уехать в отдельный резолвер, а тут вызываться уже стек резолверов
     private function resolveParameters(callable $controller, array $parameters): array
     {
-        if (is_array($controller)){
+        if (is_array($controller)) {
             $reflector = new \ReflectionMethod($controller[0], $controller[1]);
         }
 
@@ -121,11 +135,15 @@ final class ControllerDispatcher implements ControllerDispatcherInterface
         return $resolvedParameters;
     }
 
-
-    private function runController(callable $controller, array $parameters)//ResponseInterface
+    private function runController(callable $controller, array $parameters): ResponseInterface
     {
-        return $controller(...$parameters);
+        $response = $controller(...$parameters);
+
+        if (!$response instanceof ResponseInterface) {
+            $type = get_debug_type($response);
+            throw new TypeError("Controller return value must be of type " . ResponseInterface::class . ", {$type} returned");
+        }
+
+        return $response;
     }
-
-
 }

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Core\Routes;
+namespace App\Core\Routing;
 
 use App\Core\Http\Middleware\MiddlewareInterface;
 use App\Core\Http\Middleware\RequestHandlerInterface;

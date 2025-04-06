@@ -13,7 +13,7 @@ class HomeController extends AbstractController
 {
     public function index(): Response
     {
-        return new Response(body: ['ddd']);
+        return $this->render('hello.latte', ['name' => 'vasya']);
     }
 
     public function show(int $id, ServerRequestInterface $request): ResponseInterface
