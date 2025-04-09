@@ -5,11 +5,11 @@ namespace App\Core\Container;
 use App\Core\Container\Exceptions\ContainerException;
 use App\Core\Container\Exceptions\ArgumentCountError;
 use App\Core\Container\Exceptions\NotFoundContainerException;
-use Psr\Container\ContainerInterface;
+use App\Core\Container\Resolvers\ParametersResolverInterface;
 use ReflectionClass;
 use ReflectionParameter;
 
-class Container implements ContainerInterface
+class Container implements ParametersResolverInterface
 {
     /**
      * @var array<object>
@@ -94,7 +94,7 @@ class Container implements ContainerInterface
         }
     }
 
-    private function resolveDependencies(string $definition, $parameters = []): array
+    protected function resolveDependencies(string $definition, $parameters = []): array
     {
         $reflector = new ReflectionClass($definition);
 
@@ -113,13 +113,13 @@ class Container implements ContainerInterface
     }
 
     /**
-     * @param array<ReflectionParameter> $constructorParameters
+     * @param array<ReflectionParameter> $methodParameters
      */
-    private function resolveParameters(array $constructorParameters, string $definition, array $parameters = []): array
+    public function resolveParameters(array $methodParameters, string $definition, array $parameters = []): array//TODO: Сделать публичным??
     {
         $resolvedParameters = [];
 
-        foreach ($constructorParameters as $methodParameter) {
+        foreach ($methodParameters as $methodParameter) {
             $parameterName = $methodParameter->getName();
 
             if (array_key_exists($parameterName, $parameters)) {
@@ -160,7 +160,7 @@ class Container implements ContainerInterface
     private function throwNotInstantiable(mixed $concrete): void
     {
         if (!is_string($concrete)) {
-            throw new NotFoundContainerException("Concrete type of ". gettype($concrete) ." can not be instantiated");
+            throw new ContainerException("Concrete type of ". gettype($concrete) ." can not be instantiated");
         } elseif (!$this->isInstantiable($concrete)) {
             throw new NotFoundContainerException("{$concrete} is not instantiable");
         }

@@ -2,7 +2,6 @@
 
 namespace App\Core\Routing;
 
-use App\Core\Factories\RouteFactoryInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
 class Router

@@ -7,6 +7,7 @@ use App\Core\Cache\Redis\RedisCache;
 use App\Core\Cache\Redis\RedisConnector;
 use App\Core\Config\Config;
 use App\Core\Container\Container;
+use App\Core\Container\Resolvers\ParametersResolverInterface;
 use App\Core\Event\EventDispatcher;
 use App\Core\Event\ListenerProviderComposite;
 use App\Core\Http\Exception\ExceptionHandler;
@@ -15,7 +16,7 @@ use App\Core\Http\Middleware\NotFoundErrorMiddleware;
 use App\Core\Logger\Handlers\LogHandlerInterface;
 use App\Core\Logger\Handlers\StreamLogHandler;
 use App\Core\Logger\Logger;
-use App\Core\Routing\ControllerDispatcher;
+use App\Core\Routing\Controller\ControllerDispatcher;
 use App\Core\Routing\Router;
 use App\Core\Routing\RoutesRegistrar;
 use GuzzleHttp\Psr7\ServerRequest;
@@ -54,16 +55,17 @@ class Application extends Container
 
     protected function configureContainer()
     {
-        $this->bind(\App\Core\Factories\RouteFactoryInterface::class, \App\Core\Factories\RouteFactory::class);
+        $this->bind(\App\Core\Routing\RouteFactoryInterface::class, \App\Core\Routing\RouteFactory::class);
         $this->bind(\App\Core\Routing\RouteCollectionInterface::class, \App\Core\Routing\RouteCollection::class);
         $this->bind(ServerRequestInterface::class, function (): ServerRequestInterface {
-                return ServerRequest::fromGlobals();
+            return ServerRequest::fromGlobals();
         });
-        $this->bind(\App\Core\Routing\ControllerDispatcherInterface::class, \App\Core\Routing\ControllerDispatcher::class);
+        $this->bind(\App\Core\Routing\Controller\ControllerDispatcherInterface::class, \App\Core\Routing\Controller\ControllerDispatcher::class);
         $this->bind(\Psr\Container\ContainerInterface::class, $this);//А вот вам и синглтон локатор
+        $this->bind(ParametersResolverInterface::class, $this);
         $this->bind(ListenerProviderInterface::class, ListenerProviderComposite::class);
-        $this->bind(LogHandlerInterface::class, fn() =>  $this->makeWith(StreamLogHandler::class, ['path' => $this->config->get('logs.default.path')]));
-        $this->bind(ListenerProviderInterface::class, fn() =>  $this->makeWith(ListenerProviderComposite::class, ['providers' => $this->config->get('events')]));
+        $this->bind(LogHandlerInterface::class, fn() => $this->makeWith(StreamLogHandler::class, ['path' => $this->config->get('logs.default.path')]));
+        $this->bind(ListenerProviderInterface::class, fn() => $this->makeWith(ListenerProviderComposite::class, ['providers' => $this->config->get('events')]));
         $this->bind(EventDispatcherInterface::class, fn() => $this->make(EventDispatcher::class));
         $this->bind(LoggerInterface::class, Logger::class);
         $this->bind(CacheItemPoolInterface::class, RedisCache::class);
@@ -113,7 +115,7 @@ class Application extends Container
                 ]
             );
 
-            $response =  $dispatcher->handle($request);
+            $response = $dispatcher->handle($request);
 
             $this->sendResponse($response);
 

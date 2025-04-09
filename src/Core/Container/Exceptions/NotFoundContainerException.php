@@ -2,12 +2,9 @@
 
 namespace App\Core\Container\Exceptions;
 
+use Psr\Container\NotFoundExceptionInterface;
 use Throwable;
 
-class NotFoundContainerException extends \Exception
+class NotFoundContainerException extends \Exception implements NotFoundExceptionInterface
 {
-    public function __construct(string $message = "", int $code = 0, ?Throwable $previous = null)
-    {
-        parent::__construct($message, $code, $previous);
-    }
 }

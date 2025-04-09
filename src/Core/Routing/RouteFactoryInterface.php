@@ -1,8 +1,6 @@
 <?php
 
-namespace App\Core\Factories;
-
-use App\Core\Routing\RouteInterface;
+namespace App\Core\Routing;
 
 interface RouteFactoryInterface
 {
