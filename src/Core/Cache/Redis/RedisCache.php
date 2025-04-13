@@ -78,7 +78,7 @@ final class RedisCache extends AbstractCache
 
     public function deleteItem(string $key): bool
     {
-        //Это тоже можно ставить в очередь deferredItems - чтобы удалять пачкой а не по одному - коммит делать в любом изменяюшем состояние методе
+        //Это тоже можно ставить в очередь deferredItems - чтобы удалять пачкой а не по одному - коммит делать в любом изменяющем состояние методе
         return (bool)$this->redis->del($key);
     }
 

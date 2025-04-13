@@ -58,7 +58,7 @@ class Route implements RouteInterface
         return $this;
     }
 
-    public function setMiddlewares(array $middlewares): static
+    public function setMiddlewares(array|string $middlewares): static
     {
         $this->middleware = array_merge($this->middleware, $middlewares);
 
@@ -77,7 +77,7 @@ class Route implements RouteInterface
 
     public function matches(ServerRequestInterface $request): bool
     {
-        $uriPath = trim(parse_url($request->getUri(), PHP_URL_PATH),'/');
+        $uriPath = trim(parse_url($request->getUri(), PHP_URL_PATH), '/');
 
         return preg_match('#^' . $this->getCompiled() . '$#', $uriPath);
     }
@@ -86,10 +86,9 @@ class Route implements RouteInterface
     {
         $uriPath = parse_url($request->getUri(), PHP_URL_PATH);
 
-        preg_match('#^' . $this->getCompiled() . '$#', $uriPath, $matches, PREG_UNMATCHED_AS_NULL);
+        preg_match('#^/' . $this->getCompiled() . '$#', $uriPath, $matches, PREG_UNMATCHED_AS_NULL);
 
         $this->parameters = array_filter($matches, 'is_string', ARRAY_FILTER_USE_KEY);
-
     }
 
     public function getMiddleware(): array

@@ -2,7 +2,6 @@
 
 namespace App\Core\Application;
 
-use App\Blog\Http\Controllers\HomeController;
 use App\Core\Cache\Redis\RedisCache;
 use App\Core\Cache\Redis\RedisConnector;
 use App\Core\Config\Config;
@@ -10,13 +9,14 @@ use App\Core\Container\Container;
 use App\Core\Container\Resolvers\ParametersResolverInterface;
 use App\Core\Event\EventDispatcher;
 use App\Core\Event\ListenerProviderComposite;
-use App\Core\Http\Exception\ExceptionHandler;
-use App\Core\Http\Middleware\MiddlewareDispatcher;
+use App\Core\Exception\ErrorHandler;
 use App\Core\Http\Middleware\NotFoundErrorMiddleware;
+use App\Core\Kernel\HttpKernel;
 use App\Core\Logger\Handlers\LogHandlerInterface;
 use App\Core\Logger\Handlers\StreamLogHandler;
 use App\Core\Logger\Logger;
-use App\Core\Routing\Controller\ControllerDispatcher;
+use App\Core\Routing\RouteCollectionInterface;
+use App\Core\Routing\RouteFactoryInterface;
 use App\Core\Routing\Router;
 use App\Core\Routing\RoutesRegistrar;
 use GuzzleHttp\Psr7\ServerRequest;
@@ -25,54 +25,29 @@ use Latte\Loaders\FileLoader;
 use Psr\Cache\CacheItemPoolInterface;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\EventDispatcher\ListenerProviderInterface;
-use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Log\LoggerInterface;
 use Redis;
 
-/////////////////////////////////////////////////////////
-/// //TODO: мне кажется что все что связанно с контейнеризацией
-///  и конфигурацие остается здесь - остальное летит в ядро Kernel а тут мы тупо резолвим в общем рил Composition root
-/// Kernel
-///   public function __construct(Application $app, Router $router)
-//    {
-//        $this->app = $app;
-//        $this->router = $router;
-//
-//        $this->syncMiddlewareToRouter();
-//    }
-class Application extends Container
+class Application extends Container implements ApplicationInterface
 {
-    private string $basePath;
+    private string $basePath;//
     private string $configPath;
     private array $middlewares = [];
+    private array $serviceProviders = [];
     private Config $config;
 
     public function __construct()
     {
-        $this->prepareConfig();//???
+        $this->registerBaseBind();
+        $this->prepareConfig();
+
     }
 
-    protected function configureContainer()
+    protected function registerBaseBind(): void
     {
-        $this->bind(\App\Core\Routing\RouteFactoryInterface::class, \App\Core\Routing\RouteFactory::class);
-        $this->bind(\App\Core\Routing\RouteCollectionInterface::class, \App\Core\Routing\RouteCollection::class);
-        $this->bind(ServerRequestInterface::class, function (): ServerRequestInterface {
-            return ServerRequest::fromGlobals();
-        });
-        $this->bind(\App\Core\Routing\Controller\ControllerDispatcherInterface::class, \App\Core\Routing\Controller\ControllerDispatcher::class);
-        $this->bind(\Psr\Container\ContainerInterface::class, $this);//А вот вам и синглтон локатор
+        $this->bind(\Psr\Container\ContainerInterface::class, $this);
         $this->bind(ParametersResolverInterface::class, $this);
-        $this->bind(ListenerProviderInterface::class, ListenerProviderComposite::class);
-        $this->bind(LogHandlerInterface::class, fn() => $this->makeWith(StreamLogHandler::class, ['path' => $this->config->get('logs.default.path')]));
-        $this->bind(ListenerProviderInterface::class, fn() => $this->makeWith(ListenerProviderComposite::class, ['providers' => $this->config->get('events')]));
-        $this->bind(EventDispatcherInterface::class, fn() => $this->make(EventDispatcher::class));
-        $this->bind(LoggerInterface::class, Logger::class);
-        $this->bind(CacheItemPoolInterface::class, RedisCache::class);
-        $this->bind(Redis::class, function (): Redis {
-            $connector = new RedisConnector($this->config->get('redis'));
-            return $connector->connection();
-        });
         $this->bind(Engine::class, function (): Engine {
             $latte = new Engine();
             $latte->setTempDirectory(getcwd() . '/cache');
@@ -81,58 +56,19 @@ class Application extends Container
         });
     }
 
-    protected function configureRoutes(Router $router): void
-    {
-        $router->get('/', [HomeController::class, 'index']);
-        $router->get('/{id}', [HomeController::class, 'show']);
-        $router->post('/{id}', [HomeController::class, 'store']);
-    }
-
     public function handleRequest(ServerRequestInterface $request): void
     {
-        try {
-            $this->configureContainer();
+        $this->registerProviders();
 
-            $router = $this->make(Router::class);
-            $routeRegistrar = new RoutesRegistrar($router);
+        $kernel = $this->make(HttpKernel::class);
+        $kernel->setGlobalMiddlewares($this->middlewares);
 
-            $routeRegistrar->registerRoutes();
-//            $this->configureRoutes($routeRegistrar);
-
-            $cache = $this->make(CacheItemPoolInterface::class);
-
-            $this->setGlobalMiddlewares([
-                new NotFoundErrorMiddleware(),
-            ]);
-
-            $controllerDispatcher = $this->make(ControllerDispatcher::class);
-            $routeRunner = new \App\Core\Routing\RouteDispatcher($router, new MiddlewareDispatcher($this));
-            $dispatcher = new MiddlewareDispatcher($this);
-            $dispatcher->setMiddlewares($this->middlewares);
-            $dispatcher->addMiddleware([
-                    $routeRunner,
-                    $controllerDispatcher
-                ]
-            );
-
-            $response = $dispatcher->handle($request);
-
-            $this->sendResponse($response);
-
-//            return $response;
-        } catch (\Exception $e) {
-            $this->handleException($e);//TODO: setCustomHandler///Вообще через ивент все сделать
-        }
-    }
-
-    private function handleException(\Throwable $e): void
-    {
-        (new ExceptionHandler())->handle($e);
+        $kernel->handle($request);
     }
 
     private function prepareConfig(): void
     {
-        $this->configPath = "/var/www/blog/src"; //TODO: тут хардкод пока
+        $this->configPath = "/var/www/blog/src";
 
         $parameters = [];
 
@@ -148,26 +84,30 @@ class Application extends Container
         $this->config = new Config($parameters);
     }
 
-    private function sendResponse(ResponseInterface $response): void
-    {
-        http_response_code($response->getStatusCode());
-
-        foreach ($response->getHeaders() as $name => $values) {
-            foreach ($values as $value) {
-                header(sprintf('%s: %s', $name, $value));
-            }
-        }
-
-        echo $response->getBody()->getContents();
-    }
-
     public function config(string $key = ''): array|string
     {
         return $this->config->get($key);
     }
 
-    public function setGlobalMiddlewares(array $middlewares): void
+    private function registerProviders(): void
+    {
+        foreach ($this->serviceProviders as $serviceProvider) {
+            $serviceProvider = $this->makeWith($serviceProvider, ['application' => $this]);
+
+            $serviceProvider->register($this);
+        }
+    }
+
+    public function withProviders(array $providers): static
+    {
+        $this->serviceProviders = $providers;
+        return $this;
+    }
+
+    public function withMiddleware(array $middlewares): static
     {
         $this->middlewares = $middlewares;
+
+        return $this;
     }
 }

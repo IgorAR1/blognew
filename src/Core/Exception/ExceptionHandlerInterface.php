@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Core\Http\Exception;
+namespace App\Core\Exception;
 
 
 interface ExceptionHandlerInterface

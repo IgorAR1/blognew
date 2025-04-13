@@ -8,8 +8,8 @@ class Router
 {
     protected array $groupStack = [];
 
-    public function __construct(readonly RouteFactoryInterface         $routeFactory,
-                                readonly RouteCollectionInterface       $routeCollection)
+    public function __construct(readonly RouteFactoryInterface    $routeFactory,
+                                readonly RouteCollectionInterface $routeCollection)
     {
     }
 
@@ -22,21 +22,29 @@ class Router
     {
         return $this->routeCollection->findRoute($request);
     }
+
     public function addRoute(string $method, string $uri, mixed $controller): RouteInterface
     {
-        $group = $this->groupStack;
+        $lastGroup = [];
 
-        if (isset($group['prefix'])) {
-            foreach (array_reverse($group['prefix']) as $prefix) {
+        if (!empty($this->groupStack)) {
+            $lastGroup = end($this->groupStack);
+        }
+
+        if (isset($lastGroup['prefix'])) {
+            $prefixes = (array)$lastGroup['prefix'];
+            foreach (array_reverse($prefixes) as $prefix) {
                 $uri = $this->prefix($uri, $prefix);
             }
         }
 
         $route = $this->create($method, $uri, $controller);
 
-        if (isset($group['middleware'])) {
-            $route->setMiddlewares($group['middleware']);
+        if (isset($lastGroup['middleware'])) {
+            $middlewares = (array)$lastGroup['middleware'];
+            $route->setMiddlewares($middlewares);
         }
+
         $this->routeCollection->addRoute($method, $route);
 
         return $route;
@@ -44,8 +52,10 @@ class Router
 
     public function group(array $parameters, \Closure $callback): void
     {
-//        $this->groupStack[] = $parameters;
-        $this->groupStack = array_merge_recursive($this->groupStack, $parameters);
+        if (!empty($this->groupStack)) {
+            $parameters = array_merge_recursive(end($this->groupStack), $parameters);
+        }
+        $this->groupStack[] = $parameters;
 
         $callback($this);
 
@@ -84,6 +94,6 @@ class Router
 
     private function prefix(string $uri, mixed $prefix): string
     {
-        return trim(trim($prefix, '/').'/'.trim($uri, '/'), '/') ?: '/';
+        return trim(trim($prefix, '/') . '/' . trim($uri, '/'), '/') ?: '/';
     }
 }

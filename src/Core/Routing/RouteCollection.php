@@ -33,6 +33,7 @@ class RouteCollection implements RouteCollectionInterface
                 return $route;
             }
         }
+
         throw new NotFoundRouteException("No route matching for method {$request->getMethod()} in {$request->getUri()}");
     }
 }

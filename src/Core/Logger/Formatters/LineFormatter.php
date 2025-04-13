@@ -2,7 +2,6 @@
 
 namespace App\Core\Logger\Formatters;
 
-///Это катастрофа а не класс
 use App\Core\Logger\LogRecord;
 
 class LineFormatter implements FormatterInterface

@@ -24,6 +24,7 @@ class EventDispatcher implements EventDispatcherInterface
             }
             $listener($event);
         }
+
         return $event;
     }
 }

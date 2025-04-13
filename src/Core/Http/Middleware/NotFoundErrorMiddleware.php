@@ -12,6 +12,10 @@ class NotFoundErrorMiddleware implements MiddlewareInterface
     {
         $response = $handler->handle($request);
 
+        if ($response->getStatusCode() === 404) {
+            ///do something можно 404 зарендерить здесь
+        }
+
         return $response;
     }
 }

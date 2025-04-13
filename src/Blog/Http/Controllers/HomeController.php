@@ -18,7 +18,7 @@ class HomeController extends AbstractController
 
     public function show(int $id, ServerRequestInterface $request): ResponseInterface
     {
-        return $this->render('hello.latte', ['name' => $request->getQueryParams()['name']]);
+        return $this->render('hello.latte', ['name' => 'igoryan']);
     }
 
     public function store(ServerRequestInterface $request): ResponseInterface
